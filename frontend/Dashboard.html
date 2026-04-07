@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeForce Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 32px;
+        }
+
+        header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px 25px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        .score-btn {
+            background: #ff9800 !important;
+        }
+
+        .score-btn:hover {
+            background: #f57c00 !important;
+        }
+
+        .export-btn {
+            background: #4caf50;
+        }
+
+        .export-btn:hover {
+            background: #45a049;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #ddd;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status.new {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.scored {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status.processing {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status.completed {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .trade-badge {
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .score-badge {
+            background: #ff9800;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>TradeForce Dashboard</h1>
+                <p>Manage and track all submitted leads</p>
+            </div>
+            <div class="header-stats">
+                <div class="stat">
+                    <div class="stat-number" id="totalLeads">0</div>
+                    <div class="stat-label">Total Leads</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="newLeads">0</div>
+                    <div class="stat-label">New Leads</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="scoredLeads">0</div>
+                    <div class="stat-label">Scored Leads</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <button class="refresh-btn" onclick="loadLeads()">🔄 Refresh</button>
+            <button class="score-btn" onclick="scoreAllLeads()">🤖 Score All Leads</button>
+            <button class="export-btn" onclick="exportLeads()">📥 Export CSV</button>
+        </div>
+
+        <div id="errorMessage" class="error" style="display: none;"></div>
+
+        <div class="table-container">
+            <div id="loading" class="loading">Loading leads...</div>
+            <div id="empty" class="empty" style="display: none;">No leads submitted yet</div>
+            <table id="leadsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Lead Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Trade Type</th>
+                        <th>Location</th>
+                        <th>Description</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                    </tr>
+                </thead>
+                <tbody id="leadsBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Load leads when page loads
+        window.addEventListener('DOMContentLoaded', loadLeads);
+
+        async function loadLeads() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/leads');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load leads');
+                }
+
+                const leads = await response.json();
+                displayLeads(leads);
+                updateStats(leads);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('errorMessage').textContent = '❌ Error loading leads: ' + error.message;
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayLeads(leads) {
+            const leadsBody = document.getElementById('leadsBody');
+            const leadsTable = document.getElementById('leadsTable');
+            const loading = document.getElementById('loading');
+            const empty = document.getElementById('empty');
+
+            loading.style.display = 'none';
+
+            if (leads.length === 0) {
+                empty.style.display = 'block';
+                leadsTable.style.display = 'none';
+                return;
+            }
+
+            leadsBody.innerHTML = '';
+            leads.forEach(lead => {
+                const row = document.createElement('tr');
+                const date = new Date(lead.submittedAt).toLocaleDateString();
+                const scoreDisplay = lead.score ? `<span class="score-badge">${lead.score}/100</span>` : '<span style="color: #999;">Pending</span>';
+                
+                row.innerHTML = `
+                    <td><strong>${lead.leadName}</strong></td>
+                    <td>${lead.leadPhone}</td>
+                    <td>${lead.leadEmail}</td>
+                    <td><span class="trade-badge">${lead.tradeType}</span></td>
+                    <td>${lead.leadLocation}</td>
+                    <td>${lead.leadDescription.substring(0, 30)}...</td>
+                    <td>${scoreDisplay}</td>
+                    <td><span class="status ${lead.status}">${lead.status.toUpperCase()}</span></td>
+                    <td>${date}</td>
+                `;
+                leadsBody.appendChild(row);
+            });
+
+            leadsTable.style.display = 'table';
+            empty.style.display = 'none';
+        }
+
+        function updateStats(leads) {
+            const totalLeads = leads.length;
+            const newLeads = leads.filter(lead => lead.status === 'new').length;
+            const scoredLeads = leads.filter(lead => lead.status === 'scored').length;
+
+            document.getElementById('totalLeads').textContent = totalLeads;
+            document.getElementById('newLeads').textContent = newLeads;
+            document.getElementById('scoredLeads').textContent = scoredLeads;
+        }
+
+        function scoreAllLeads() {
+            if (confirm('Score all unscored leads using AI? This will use OpenAI credits.')) {
+                fetch('http://127.0.0.1:5000/leads/score-all', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(`✅ ${data.count} leads scored!`);
+                    loadLeads();
+                })
+                .catch(error => {
+                    alert('❌ Error scoring leads: ' + error);
+                    console.error('Error:', error);
+                });
+            }
+        }
+
+        function exportLeads() {
+            fetch('http://127.0.0.1:5000/leads')
+                .then(response => response.json())
+                .then(leads => {
+                    if (leads.length === 0) {
+                        alert('No leads to export');
+                        return;
+                    }
+
+                    // Create CSV content
+                    let csv = 'Lead Name,Phone,Email,Trade Type,Location,Description,Score,Status,Submitted\n';
+                    leads.forEach(lead => {
+                        const score = lead.score || 'Pending';
+                        csv += `"${lead.leadName}","${lead.leadPhone}","${lead.leadEmail}","${lead.tradeType}","${lead.leadLocation}","${lead.leadDescription}","${score}","${lead.status}","${lead.submittedAt}"\n`;
+                    });
+
+                    // Download CSV
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'tradeforce-leads.csv';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => console.error('Error exporting:', error));
+        }
+    </script>
+</body>
+</html>
+

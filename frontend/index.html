@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeForce - Lead Submission</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="tel"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .success-message {
+            display: none;
+            background: #4caf50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .error-message {
+            display: none;
+            background: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TradeForce</h1>
+        <p class="subtitle">Submit a lead and get paid instantly</p>
+
+        <div class="success-message" id="successMessage">
+            ✅ Lead submitted successfully! We'll process it shortly.
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            ❌ Error submitting lead. Please try again.
+        </div>
+
+        <form id="leadForm">
+            <div class="form-group">
+                <label for="leadName">Lead Name *</label>
+                <input type="text" id="leadName" name="leadName" required placeholder="e.g., John Smith">
+            </div>
+
+            <div class="form-group">
+                <label for="leadPhone">Lead Phone *</label>
+                <input type="tel" id="leadPhone" name="leadPhone" required placeholder="e.g., 07700 900000">
+            </div>
+
+            <div class="form-group">
+                <label for="leadEmail">Lead Email *</label>
+                <input type="email" id="leadEmail" name="leadEmail" required placeholder="e.g., john@example.com">
+            </div>
+
+            <div class="form-group">
+                <label for="tradeType">Trade Type *</label>
+                <select id="tradeType" name="tradeType" required>
+                    <option value="">Select a trade...</option>
+                    <option value="Plumber">Plumber</option>
+                    <option value="Electrician">Electrician</option>
+                    <option value="Carpenter">Carpenter</option>
+                    <option value="Roofer">Roofer</option>
+                    <option value="Painter">Painter</option>
+                    <option value="Gas Engineer">Gas Engineer</option>
+                    <option value="Locksmith">Locksmith</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="leadDescription">Lead Description *</label>
+                <textarea id="leadDescription" name="leadDescription" required placeholder="Describe the work needed..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="leadLocation">Lead Location *</label>
+                <input type="text" id="leadLocation" name="leadLocation" required placeholder="e.g., Glasgow, G1 1AA">
+            </div>
+
+            <button type="submit">Submit Lead</button>
+            <div class="loading" id="loading">Submitting...</div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('leadForm');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Hide messages
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            loading.style.display = 'block';
+
+            // Get form data
+            const formData = {
+                leadName: document.getElementById('leadName').value,
+                leadPhone: document.getElementById('leadPhone').value,
+                leadEmail: document.getElementById('leadEmail').value,
+                tradeType: document.getElementById('tradeType').value,
+                leadDescription: document.getElementById('leadDescription').value,
+                leadLocation: document.getElementById('leadLocation').value,
+            };
+
+            try {
+                // Send data to backend
+                const response = await fetch('http://127.0.0.1:5000/submit-lead', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                if (response.ok) {
+                    successMessage.style.display = 'block';
+                    form.reset();
+                } else {
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
