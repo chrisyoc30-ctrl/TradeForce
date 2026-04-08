@@ -1,10 +1,13 @@
+
+
+
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import stripe
 import json
 import os
 from datetime import datetime
-import openai
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,7 +17,7 @@ CORS(app)
 
 # Configure APIs
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-openai.api_key = os.getenv('OPENAI_API_KEY')
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 LEADS_FILE = 'leads.json'
 
@@ -60,7 +63,7 @@ def score_lead(lead_id):
     if not lead:
         return jsonify({'error': 'Lead not found'}), 404
    
-    # Score using OpenAI
+    # Score using OpenAI - NEW API v1.0+
     prompt = f"""Score this lead from 1-100 based on quality:
     Name: {lead['name']}
     Service: {lead['service']}
@@ -69,12 +72,12 @@ def score_lead(lead_id):
     Consider: urgency, budget indicators, location match.
     Return only a number 1-100."""
    
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model='gpt-3.5-turbo',
         messages=[{'role': 'user', 'content': prompt}]
     )
    
-    score = int(response['choices'][0]['message']['content'].strip())
+    score = int(response.choices[0].message.content.strip())
     lead['score'] = score
     save_leads(leads)
    
@@ -93,12 +96,12 @@ def score_all_leads():
             Consider: urgency, budget indicators, location match.
             Return only a number 1-100."""
            
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model='gpt-3.5-turbo',
                 messages=[{'role': 'user', 'content': prompt}]
             )
            
-            score = int(response['choices'][0]['message']['content'].strip())
+            score = int(response.choices[0].message.content.strip())
             lead['score'] = score
    
     save_leads(leads)
@@ -133,4 +136,3 @@ def save_leads(leads):
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
-
