@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import stripe
 import json
@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='frontend', static_url_path='')
 CORS(app)
 
 # Configure APIs
@@ -23,7 +23,21 @@ if not os.path.exists(LEADS_FILE):
     with open(LEADS_FILE, 'w') as f:
         json.dump([], f)
 
+# Serve static files
 @app.route('/')
+def index():
+    return send_from_directory('frontend', 'index.html')
+
+@app.route('/dashboard.html')
+def dashboard():
+    return send_from_directory('frontend', 'dashboard.html')
+
+@app.route('/payment.html')
+def payment():
+    return send_from_directory('frontend', 'payment.html')
+
+# API Routes
+@app.route('/api/home')
 def home():
     return jsonify({'status': 'ok', 'message': 'TradeForce API running'})
 
