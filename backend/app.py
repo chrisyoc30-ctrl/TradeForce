@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import stripe
 import json
@@ -9,8 +9,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__, static_folder='frontend', static_url_path='')
-CORS(app)
+app = Flask(__name__)
+
+# Configure CORS to allow frontend to call backend API
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["https://tradeforce-frontend.onrender.com", "http://localhost:3000"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "supports_credentials": True
+    }
+})
 
 # Configure APIs
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
@@ -23,26 +32,16 @@ if not os.path.exists(LEADS_FILE):
     with open(LEADS_FILE, 'w') as f:
         json.dump([], f)
 
-# Serve static files
-@app.route('/')
-def index():
-    return send_from_directory('frontend', 'index.html')
-
-@app.route('/dashboard.html')
-def dashboard():
-    return send_from_directory('frontend', 'dashboard.html')
-
-@app.route('/payment.html')
-def payment():
-    return send_from_directory('frontend', 'payment.html')
-
 # API Routes
 @app.route('/api/home')
 def home():
     return jsonify({'status': 'ok', 'message': 'TradeForce API running'})
 
-@app.route('/api/submit-lead', methods=['POST'])
+@app.route('/api/submit-lead', methods=['POST', 'OPTIONS'])
 def submit_lead():
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     data = request.json
     lead = {
         'id': len(get_leads()) + 1,
@@ -62,12 +61,18 @@ def submit_lead():
    
     return jsonify({'status': 'success', 'lead_id': lead['id']})
 
-@app.route('/api/get-leads', methods=['GET'])
+@app.route('/api/get-leads', methods=['GET', 'OPTIONS'])
 def get_leads_endpoint():
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     return jsonify(get_leads())
 
-@app.route('/api/score-lead/<int:lead_id>', methods=['POST'])
+@app.route('/api/score-lead/<int:lead_id>', methods=['POST', 'OPTIONS'])
 def score_lead(lead_id):
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     leads = get_leads()
     lead = next((l for l in leads if l['id'] == lead_id), None)
    
@@ -94,8 +99,11 @@ def score_lead(lead_id):
    
     return jsonify({'lead_id': lead_id, 'score': score})
 
-@app.route('/api/score-all-leads', methods=['POST'])
+@app.route('/api/score-all-leads', methods=['POST', 'OPTIONS'])
 def score_all_leads():
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     leads = get_leads()
     for lead in leads:
         if lead['score'] is None:
@@ -118,8 +126,11 @@ def score_all_leads():
     save_leads(leads)
     return jsonify({'status': 'success', 'leads_scored': len(leads)})
 
-@app.route('/api/create-payment-intent', methods=['POST'])
+@app.route('/api/create-payment-intent', methods=['POST', 'OPTIONS'])
 def create_payment_intent():
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     data = request.json
     amount = data.get('amount')  # in pence
     email = data.get('email')
