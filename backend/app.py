@@ -32,20 +32,47 @@ next_lead_id = 1
 @app.route('/')
 def index():
     """Serve the lead submission form"""
-    with open('frontend/index.html', 'r') as f:
-        return f.read()
+    try:
+        # Try absolute path first (Render)
+        with open('/opt/render/project/src/frontend/index.html', 'r') as f:
+            return f.read()
+    except:
+        try:
+            # Try relative path (local)
+            with open('frontend/index.html', 'r') as f:
+                return f.read()
+        except:
+            return jsonify({'error': 'index.html not found'}), 404
 
 @app.route('/admin.html')
 def admin():
     """Serve the dashboard"""
-    with open('frontend/admin.html', 'r') as f:
-        return f.read()
+    try:
+        # Try absolute path first (Render)
+        with open('/opt/render/project/src/frontend/admin.html', 'r') as f:
+            return f.read()
+    except:
+        try:
+            # Try relative path (local)
+            with open('frontend/admin.html', 'r') as f:
+                return f.read()
+        except:
+            return jsonify({'error': 'admin.html not found'}), 404
 
 @app.route('/payment.html')
 def payment():
     """Serve the payment page"""
-    with open('frontend/payment.html', 'r') as f:
-        return f.read()
+    try:
+        # Try absolute path first (Render)
+        with open('/opt/render/project/src/frontend/payment.html', 'r') as f:
+            return f.read()
+    except:
+        try:
+            # Try relative path (local)
+            with open('frontend/payment.html', 'r') as f:
+                return f.read()
+        except:
+            return jsonify({'error': 'payment.html not found'}), 404
 
 # ==================== API ROUTES ====================
 
