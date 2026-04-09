@@ -1,339 +1,485 @@
 import os
 import json
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from openai import OpenAI
 import stripe
-from io import BytesIO
-from datetime import datetime
 
-# Initialize Flask app
-app = Flask(__name__, static_folder='frontend', static_url_path='')
+app = Flask(__name__)
 
-# CORS configuration - Allow requests from frontend and landing page
+# CORS Configuration
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["https://tradeforce-frontend.onrender.com", "https://tradescoreglasgow-site.onrender.com", "http://localhost:3000"],
+        "origins": ["https://tradescoreglasgow-site.onrender.com", "http://localhost:3000", "http://localhost:5000"],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"]
     }
 })
 
-# Initialize OpenAI and Stripe
+# Initialize OpenAI
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# Initialize Stripe
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
-# In-memory storage for leads (in production, use a database)
-leads = {}
-next_lead_id = 1
+# Data storage (in-memory for demo)
+leads = []
+lead_id_counter = 1
 
-# ==================== HTML ROUTES ====================
+# HTML Templates (Embedded)
+INDEX_HTML = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeScore - Lead Submission</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            background-attachment: fixed;
+            color: #e0e0e0;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(0deg, transparent 24%, rgba(255, 193, 7, 0.05) 25%, rgba(255, 193, 7, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 193, 7, 0.05) 75%, rgba(255, 193, 7, 0.05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(255, 193, 7, 0.05) 25%, rgba(255, 193, 7, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 193, 7, 0.05) 75%, rgba(255, 193, 7, 0.05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            letter-spacing: 2px;
+            color: #ffc107;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #999;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .form-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 193, 7, 0.2);
+            border-radius: 8px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffc107;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: #ffc107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            letter-spacing: 1px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
+        }
+
+        .success-message {
+            display: none;
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .error-message {
+            display: none;
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+        }
+
+        .nav-links a {
+            color: #ffc107;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: color 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links a:hover {
+            color: #ffb300;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #ffc107;
+        }
+
+        .spinner {
+            border: 2px solid rgba(255, 193, 7, 0.2);
+            border-top: 2px solid #ffc107;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TradeScore</h1>
+            <p class="subtitle">Get Qualified Leads Instantly</p>
+        </header>
+
+        <div class="form-card">
+            <div class="success-message" id="successMessage">
+                ✓ Lead submitted successfully! Redirecting to dashboard...
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+
+            <form id="leadForm">
+                <div class="form-group">
+                    <label for="name">Your Name *</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="service">Trade Type *</label>
+                    <select id="service" name="service" required>
+                        <option value="">Select a trade...</option>
+                        <option value="Plumbing">Plumbing</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Carpentry">Carpentry</option>
+                        <option value="Painting">Painting</option>
+                        <option value="Landscaping">Landscaping</option>
+                        <option value="HVAC">HVAC</option>
+                        <option value="Roofing">Roofing</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Project Description *</label>
+                    <textarea id="description" name="description" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location *</label>
+                    <input type="text" id="location" name="location" placeholder="Glasgow, G1 1AA" required>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Submitting lead...</p>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">Submit Lead</button>
+            </form>
+
+            <div class="nav-links">
+                <a href="/admin.html">View Dashboard</a>
+                <a href="/payment.html">View Pricing</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('leadForm');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                service: document.getElementById('service').value,
+                description: document.getElementById('description').value,
+                location: document.getElementById('location').value
+            };
+
+            loading.style.display = 'block';
+            submitBtn.disabled = true;
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/submit-lead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    successMessage.style.display = 'block';
+                    form.reset();
+                    setTimeout(() => {
+                        window.location.href = '/admin.html';
+                    }, 2000);
+                } else {
+                    errorMessage.textContent = data.error || 'Failed to submit lead.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Error submitting lead.';
+                errorMessage.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>'''
+
+# Routes
 @app.route('/')
 def index():
-    """Serve the lead submission form"""
-    try:
-        # Try absolute path first (Render)
-        with open('/opt/render/project/src/frontend/index.html', 'r') as f:
-            return f.read()
-    except:
-        try:
-            # Try relative path (local)
-            with open('frontend/index.html', 'r') as f:
-                return f.read()
-        except:
-            return jsonify({'error': 'index.html not found'}), 404
+    return INDEX_HTML, 200, {'Content-Type': 'text/html'}
 
 @app.route('/admin.html')
 def admin():
-    """Serve the dashboard"""
+    # Read from file since it's large
     try:
-        # Try absolute path first (Render)
         with open('/opt/render/project/src/frontend/admin.html', 'r') as f:
-            return f.read()
+            return f.read(), 200, {'Content-Type': 'text/html'}
     except:
         try:
-            # Try relative path (local)
             with open('frontend/admin.html', 'r') as f:
-                return f.read()
+                return f.read(), 200, {'Content-Type': 'text/html'}
         except:
-            return jsonify({'error': 'admin.html not found'}), 404
+            return "Admin page not found", 404
 
 @app.route('/payment.html')
 def payment():
-    """Serve the payment page"""
+    # Read from file since it's large
     try:
-        # Try absolute path first (Render)
         with open('/opt/render/project/src/frontend/payment.html', 'r') as f:
-            return f.read()
+            return f.read(), 200, {'Content-Type': 'text/html'}
     except:
         try:
-            # Try relative path (local)
             with open('frontend/payment.html', 'r') as f:
-                return f.read()
+                return f.read(), 200, {'Content-Type': 'text/html'}
         except:
-            return jsonify({'error': 'payment.html not found'}), 404
+            return "Payment page not found", 404
 
-# ==================== API ROUTES ====================
-
+# API Routes
 @app.route('/api/submit-lead', methods=['POST'])
 def submit_lead():
-    """Submit a new lead"""
-    global next_lead_id
+    global lead_id_counter
     
-    try:
-        data = request.json
-        
-        # Validate required fields
-        required_fields = ['name', 'phone', 'email', 'service', 'description', 'location']
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
-        
-        # Create lead object
-        lead_id = next_lead_id
-        next_lead_id += 1
-        
-        lead = {
-            'id': lead_id,
-            'name': data['name'],
-            'phone': data['phone'],
-            'email': data['email'],
-            'service': data['service'],
-            'description': data['description'],
-            'location': data['location'],
-            'submitted_at': datetime.now().isoformat(),
-            'score': None,
-            'ai_feedback': None
-        }
-        
-        leads[lead_id] = lead
-        
-        return jsonify({
-            'lead_id': lead_id,
-            'status': 'success'
-        }), 201
+    data = request.json
     
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    lead = {
+        'id': lead_id_counter,
+        'name': data.get('name'),
+        'email': data.get('email'),
+        'phone': data.get('phone'),
+        'service': data.get('service'),
+        'description': data.get('description'),
+        'location': data.get('location'),
+        'score': None
+    }
+    
+    leads.append(lead)
+    lead_id_counter += 1
+    
+    return jsonify({'lead_id': lead['id'], 'status': 'success'}), 201
 
 @app.route('/api/get-leads', methods=['GET'])
-def get_leads_endpoint():
-    """Get all leads"""
-    try:
-        leads_list = list(leads.values())
-        return jsonify({
-            'leads': leads_list,
-            'total': len(leads_list),
-            'scored': len([l for l in leads_list if l['score'] is not None])
-        }), 200
-    
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+def get_leads():
+    return jsonify({'leads': leads}), 200
 
 @app.route('/api/score-lead/<int:lead_id>', methods=['POST'])
 def score_lead(lead_id):
-    """Score a single lead using AI"""
+    lead = next((l for l in leads if l['id'] == lead_id), None)
+    
+    if not lead:
+        return jsonify({'error': 'Lead not found'}), 404
+    
     try:
-        if lead_id not in leads:
-            return jsonify({'error': 'Lead not found'}), 404
+        prompt = f"""Score this lead on a scale of 1-100 based on quality and likelihood to convert.
         
-        lead = leads[lead_id]
+Lead Details:
+- Name: {lead['name']}
+- Service: {lead['service']}
+- Description: {lead['description']}
+- Location: {lead['location']}
+
+Respond with ONLY a number between 1-100."""
         
-        # Create prompt for OpenAI
-        prompt = f"""
-        You are a lead quality scoring expert. Score this lead on a scale of 0-100 based on likelihood to convert.
-        
-        Lead Details:
-        - Name: {lead['name']}
-        - Phone: {lead['phone']}
-        - Email: {lead['email']}
-        - Service Type: {lead['service']}
-        - Description: {lead['description']}
-        - Location: {lead['location']}
-        
-        Provide:
-        1. A score (0-100)
-        2. Brief reasoning (1-2 sentences)
-        3. Recommendation (contact/follow-up/skip)
-        
-        Format your response as JSON:
-        {{"score": <number>, "reasoning": "<text>", "recommendation": "<contact/follow-up/skip>"}}
-        """
-        
-        # Call OpenAI API
         response = client.chat.completions.create(
             model='gpt-3.5-turbo',
             messages=[{'role': 'user', 'content': prompt}]
         )
         
-        # Parse response
-        ai_response = response.choices[0].message.content
-        
-        try:
-            ai_data = json.loads(ai_response)
-            score = ai_data.get('score', 50)
-            reasoning = ai_data.get('reasoning', 'No reasoning provided')
-            recommendation = ai_data.get('recommendation', 'follow-up')
-        except:
-            score = 50
-            reasoning = ai_response
-            recommendation = 'follow-up'
-        
-        # Update lead with score
+        score = int(response.choices[0].message.content.strip())
         lead['score'] = score
-        lead['ai_feedback'] = reasoning
-        lead['recommendation'] = recommendation
         
-        return jsonify({
-            'lead_id': lead_id,
-            'score': score,
-            'reasoning': reasoning,
-            'recommendation': recommendation
-        }), 200
-    
+        return jsonify({'lead_id': lead_id, 'score': score}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/score-all-leads', methods=['POST'])
 def score_all_leads():
-    """Score all leads"""
-    try:
-        results = []
-        
-        for lead_id in leads:
-            lead = leads[lead_id]
-            
-            if lead['score'] is not None:
-                results.append({
-                    'lead_id': lead_id,
-                    'score': lead['score'],
-                    'status': 'already_scored'
-                })
-                continue
-            
-            # Create prompt for OpenAI
-            prompt = f"""
-            You are a lead quality scoring expert. Score this lead on a scale of 0-100 based on likelihood to convert.
-            
-            Lead Details:
-            - Name: {lead['name']}
-            - Phone: {lead['phone']}
-            - Email: {lead['email']}
-            - Service Type: {lead['service']}
-            - Description: {lead['description']}
-            - Location: {lead['location']}
-            
-            Provide:
-            1. A score (0-100)
-            2. Brief reasoning (1-2 sentences)
-            3. Recommendation (contact/follow-up/skip)
-            
-            Format your response as JSON:
-            {{"score": <number>, "reasoning": "<text>", "recommendation": "<contact/follow-up/skip>"}}
-            """
-            
-            # Call OpenAI API
-            response = client.chat.completions.create(
-                model='gpt-3.5-turbo',
-                messages=[{'role': 'user', 'content': prompt}]
-            )
-            
-            # Parse response
-            ai_response = response.choices[0].message.content
-            
+    for lead in leads:
+        if lead['score'] is None:
             try:
-                ai_data = json.loads(ai_response)
-                score = ai_data.get('score', 50)
-                reasoning = ai_data.get('reasoning', 'No reasoning provided')
-                recommendation = ai_data.get('recommendation', 'follow-up')
+                prompt = f"""Score this lead on a scale of 1-100.
+Lead: {lead['name']} - {lead['service']} - {lead['description']}
+Respond with ONLY a number."""
+                
+                response = client.chat.completions.create(
+                    model='gpt-3.5-turbo',
+                    messages=[{'role': 'user', 'content': prompt}]
+                )
+                
+                lead['score'] = int(response.choices[0].message.content.strip())
             except:
-                score = 50
-                reasoning = ai_response
-                recommendation = 'follow-up'
-            
-            # Update lead with score
-            lead['score'] = score
-            lead['ai_feedback'] = reasoning
-            lead['recommendation'] = recommendation
-            
-            results.append({
-                'lead_id': lead_id,
-                'score': score,
-                'status': 'scored'
-            })
-        
-        return jsonify({
-            'total_leads': len(leads),
-            'scored': len([r for r in results if r['status'] == 'scored']),
-            'results': results
-        }), 200
+                lead['score'] = 50
     
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return jsonify({'status': 'success', 'scored': len(leads)}), 200
 
 @app.route('/api/create-payment-intent', methods=['POST'])
 def create_payment_intent():
-    """Create a Stripe payment intent"""
+    data = request.json
+    amount = data.get('amount', 2999)
+    
     try:
-        data = request.json
-        amount = data.get('amount')
-        plan = data.get('plan')
-        
-        if not amount or not plan:
-            return jsonify({'error': 'Missing amount or plan'}), 400
-        
-        # Create payment intent
         intent = stripe.PaymentIntent.create(
-            amount=int(amount * 100),  # Convert to cents
+            amount=amount,
             currency='gbp',
-            metadata={'plan': plan}
+            metadata={'plan': data.get('plan', 'starter')}
         )
         
         return jsonify({
             'client_secret': intent.client_secret,
-            'payment_intent_id': intent.id
+            'publishable_key': os.getenv('STRIPE_PUBLISHABLE_KEY')
         }), 200
-    
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-@app.route('/api/export-csv', methods=['GET'])
-def export_csv():
-    """Export all leads as CSV"""
-    try:
-        # Create CSV content
-        csv_content = 'ID,Name,Phone,Email,Service,Location,Score,Submitted\n'
-        
-        for lead_id, lead in leads.items():
-            score = lead['score'] if lead['score'] is not None else 'Pending'
-            csv_content += f'{lead_id},"{lead["name"]}",{lead["phone"]},{lead["email"]},{lead["service"]},"{lead["location"]}",{score},{lead["submitted_at"]}\n'
-        
-        # Return as file
-        return send_file(
-            BytesIO(csv_content.encode()),
-            mimetype='text/csv',
-            as_attachment=True,
-            download_name='leads.csv'
-        )
-    
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# ==================== ERROR HANDLERS ====================
-
-@app.errorhandler(404)
-def not_found(error):
-    """Handle 404 errors"""
-    return jsonify({'error': 'Not found'}), 404
-
-@app.errorhandler(500)
-def server_error(error):
-    """Handle 500 errors"""
-    return jsonify({'error': 'Internal server error'}), 500
-
-# ==================== RUN ====================
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, port=5000)
