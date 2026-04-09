@@ -1,345 +1,338 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TradeScore — Submit a Lead</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --black: #0a0a0a;
-    --steel: #1a1f2e;
-    --steel-light: #1f2538;
-    --amber: #f5a623;
-    --amber-light: #ffc04d;
-    --off-white: #f0ece3;
-    --muted: #aab0c0;
-    --border: rgba(245,166,35,0.2);
-    --border-input: rgba(245,166,35,0.15);
-    --success: #4ade80;
-    --error: #f87171;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeScore - Lead Submission</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            background-attachment: fixed;
+            color: #e0e0e0;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
 
-  body {
-    background: var(--black);
-    color: var(--off-white);
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1.5rem;
-    position: relative;
-    overflow-x: hidden;
-  }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(0deg, transparent 24%, rgba(255, 193, 7, 0.05) 25%, rgba(255, 193, 7, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 193, 7, 0.05) 75%, rgba(255, 193, 7, 0.05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(255, 193, 7, 0.05) 25%, rgba(255, 193, 7, 0.05) 26%, transparent 27%, transparent 74%, rgba(255, 193, 7, 0.05) 75%, rgba(255, 193, 7, 0.05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(245,166,35,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(245,166,35,0.04) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
-  }
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
 
-  body::after {
-    content: '';
-    position: fixed;
-    top: -200px; right: -200px;
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(245,166,35,0.08) 0%, transparent 70%);
-    pointer-events: none;
-  }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
 
-  .card {
-    background: var(--steel);
-    border: 1px solid var(--border);
-    width: 100%;
-    max-width: 560px;
-    padding: 2.5rem;
-    position: relative;
-    z-index: 1;
-    animation: fadeUp 0.5s ease forwards;
-  }
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 48px;
+            letter-spacing: 2px;
+            color: #ffc107;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
 
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+        .subtitle {
+            font-size: 14px;
+            color: #999;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
 
-  .logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.4rem;
-    letter-spacing: 0.06em;
-    color: var(--off-white);
-    margin-bottom: 1.8rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
+        .form-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 193, 7, 0.2);
+            border-radius: 8px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
 
-  .logo span { color: var(--amber); }
+        .form-group {
+            margin-bottom: 25px;
+        }
 
-  .logo::before {
-    content: '';
-    display: inline-block;
-    width: 8px; height: 8px;
-    background: var(--amber);
-    border-radius: 50%;
-    animation: pulse 1.8s ease-in-out infinite;
-  }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffc107;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.7); }
-  }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
 
-  .card-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--amber);
-    margin-bottom: 0.5rem;
-  }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: #ffc107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.2);
+        }
 
-  h1 {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.4rem;
-    letter-spacing: 0.03em;
-    line-height: 1;
-    margin-bottom: 0.4rem;
-  }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
 
-  .subtitle {
-    font-size: 0.88rem;
-    color: rgba(240,236,227,0.55);
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
-  }
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            letter-spacing: 1px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
 
-  .form-group { margin-bottom: 1.2rem; }
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
+        }
 
-  label {
-    display: block;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.67rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 0.4rem;
-  }
+        .submit-btn:active {
+            transform: translateY(0);
+        }
 
-  input, select, textarea {
-    width: 100%;
-    background: rgba(0,0,0,0.35);
-    border: 1px solid var(--border-input);
-    color: var(--off-white);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.95rem;
-    padding: 0.75rem 1rem;
-    outline: none;
-    transition: border-color 0.2s;
-    appearance: none;
-    -webkit-appearance: none;
-  }
+        .success-message {
+            display: none;
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #4caf50;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
 
-  input::placeholder, textarea::placeholder { color: rgba(170,176,192,0.5); }
+        .error-message {
+            display: none;
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #f44336;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
 
-  input:focus, select:focus, textarea:focus { border-color: var(--amber); }
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+        }
 
-  select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aab0c0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    padding-right: 2.5rem;
-    cursor: pointer;
-  }
+        .nav-links a {
+            color: #ffc107;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: color 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-  select option { background: var(--steel); color: var(--off-white); }
+        .nav-links a:hover {
+            color: #ffb300;
+        }
 
-  textarea { resize: vertical; min-height: 100px; }
+        .loading {
+            display: none;
+            text-align: center;
+            color: #ffc107;
+        }
 
-  .submit-btn {
-    width: 100%;
-    background: var(--amber);
-    color: var(--black);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.85rem;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    border: none;
-    padding: 1rem;
-    cursor: pointer;
-    margin-top: 0.5rem;
-    transition: background 0.2s, transform 0.15s;
-  }
+        .spinner {
+            border: 2px solid rgba(255, 193, 7, 0.2);
+            border-top: 2px solid #ffc107;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 10px;
+        }
 
-  .submit-btn:hover { background: var(--amber-light); transform: translateY(-1px); }
-  .submit-btn:active { transform: translateY(0) scale(0.98); }
-
-  .loading {
-    display: none;
-    text-align: center;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
-    color: var(--amber);
-    margin-top: 0.8rem;
-  }
-
-  .alert {
-    display: none;
-    padding: 0.8rem 1rem;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
-    margin-bottom: 1.2rem;
-    border-left: 3px solid;
-  }
-
-  .alert.success { border-color: var(--success); background: rgba(74,222,128,0.08); color: var(--success); }
-  .alert.error   { border-color: var(--error);   background: rgba(248,113,113,0.08); color: var(--error); }
-
-  .nav-link {
-    margin-top: 1.5rem;
-    text-align: center;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.08em;
-  }
-
-  .nav-link a {
-    color: var(--muted);
-    text-decoration: none;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 1px;
-    transition: color 0.2s;
-  }
-
-  .nav-link a:hover { color: var(--amber); }
-</style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>TradeScore</h1>
+            <p class="subtitle">Get Qualified Leads Instantly</p>
+        </header>
 
-<div class="card">
-  <div class="logo">Trade<span>Score</span></div>
+        <div class="form-card">
+            <div class="success-message" id="successMessage">
+                ✓ Lead submitted successfully! Redirecting to dashboard...
+            </div>
+            <div class="error-message" id="errorMessage"></div>
 
-  <div class="card-tag">// Lead Submission</div>
-  <h1>Submit a Lead</h1>
-  <p class="subtitle">Fill in the details below. Scored leads get paid.</p>
+            <form id="leadForm">
+                <div class="form-group">
+                    <label for="name">Your Name *</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
 
-  <div class="alert success" id="successMessage">✓ Lead submitted successfully. We'll process it shortly.</div>
-  <div class="alert error"   id="errorMessage">✕ Error submitting lead. Please try again.</div>
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
 
-  <form id="leadForm">
-    <div class="form-group">
-      <label for="name">Lead Name *</label>
-      <input type="text" id="name" name="name" required placeholder="e.g. John Smith">
+                <div class="form-group">
+                    <label for="phone">Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="service">Trade Type *</label>
+                    <select id="service" name="service" required>
+                        <option value="">Select a trade...</option>
+                        <option value="Plumbing">Plumbing</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Carpentry">Carpentry</option>
+                        <option value="Painting">Painting</option>
+                        <option value="Landscaping">Landscaping</option>
+                        <option value="HVAC">HVAC</option>
+                        <option value="Roofing">Roofing</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Project Description *</label>
+                    <textarea id="description" name="description" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location *</label>
+                    <input type="text" id="location" name="location" placeholder="Glasgow, G1 1AA" required>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Submitting lead...</p>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">Submit Lead</button>
+            </form>
+
+            <div class="nav-links">
+                <a href="/admin.html">View Dashboard</a>
+                <a href="/payment.html">View Pricing</a>
+            </div>
+        </div>
     </div>
 
-    <div class="form-group">
-      <label for="phone">Lead Phone *</label>
-      <input type="tel" id="phone" name="phone" required placeholder="e.g. 07700 900000">
-    </div>
+    <script>
+        const form = document.getElementById('leadForm');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
+        const submitBtn = document.getElementById('submitBtn');
 
-    <div class="form-group">
-      <label for="email">Lead Email *</label>
-      <input type="email" id="email" name="email" required placeholder="e.g. john@example.com">
-    </div>
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-    <div class="form-group">
-      <label for="service">Trade Type *</label>
-      <select id="service" name="service" required>
-        <option value="">Select a trade…</option>
-        <option value="Plumber">Plumber</option>
-        <option value="Electrician">Electrician</option>
-        <option value="Carpenter">Carpenter</option>
-        <option value="Roofer">Roofer</option>
-        <option value="Painter">Painter</option>
-        <option value="Gas Engineer">Gas Engineer</option>
-        <option value="Locksmith">Locksmith</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
+            // Get form data
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                service: document.getElementById('service').value,
+                description: document.getElementById('description').value,
+                location: document.getElementById('location').value
+            };
 
-    <div class="form-group">
-      <label for="description">Lead Description *</label>
-      <textarea id="description" name="description" required placeholder="Describe the work needed…"></textarea>
-    </div>
+            // Show loading state
+            loading.style.display = 'block';
+            submitBtn.disabled = true;
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
 
-    <div class="form-group">
-      <label for="location">Lead Location *</label>
-      <input type="text" id="location" name="location" required placeholder="e.g. Glasgow, G1 1AA">
-    </div>
+            try {
+                // Submit to backend API
+                const response = await fetch('/api/submit-lead', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
 
-    <button type="submit" class="submit-btn">Submit Lead →</button>
-    <div class="loading" id="loading">⟳ &nbsp;Submitting…</div>
-  </form>
+                const data = await response.json();
 
-  <div class="nav-link">
-    <a href="admin.html">← View Dashboard</a>
-    &nbsp;·&nbsp;
-    <a href="payment.html">Upgrade Plan →</a>
-  </div>
-</div>
-
-<script>
-  const form = document.getElementById('leadForm');
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = form.querySelector('.submit-btn');
-    document.getElementById('successMessage').style.display = 'none';
-    document.getElementById('errorMessage').style.display = 'none';
-    document.getElementById('loading').style.display = 'block';
-    btn.disabled = true;
-    btn.textContent = 'Submitting…';
-
-    const formData = {
-      name:        document.getElementById('name').value.trim(),
-      phone:       document.getElementById('phone').value.trim(),
-      email:       document.getElementById('email').value.trim(),
-      service:     document.getElementById('service').value,
-      description: document.getElementById('description').value.trim(),
-      location:    document.getElementById('location').value.trim(),
-    };
-
-    try {
-      const response = await fetch('https://tradeforce.onrender.com/api/submit-lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        document.getElementById('successMessage').style.display = 'block';
-        form.reset();
-        btn.textContent = '✓ Submitted';
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        document.getElementById('errorMessage').textContent = '✕ ' + (errData.message || 'Error submitting lead. Please try again.');
-        document.getElementById('errorMessage').style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Submit Lead →';
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      document.getElementById('errorMessage').textContent = '✕ Could not reach server. Is the backend running?';
-      document.getElementById('errorMessage').style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Submit Lead →';
-    } finally {
-      document.getElementById('loading').style.display = 'none';
-    }
-  });
-</script>
+                if (response.ok) {
+                    successMessage.style.display = 'block';
+                    form.reset();
+                    
+                    // Redirect to dashboard after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/admin.html';
+                    }, 2000);
+                } else {
+                    errorMessage.textContent = data.error || 'Failed to submit lead. Please try again.';
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Error submitting lead. Please check your connection.';
+                errorMessage.style.display = 'block';
+                console.error('Error:', error);
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
