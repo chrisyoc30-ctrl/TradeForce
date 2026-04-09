@@ -67,25 +67,6 @@
             text-transform: uppercase;
         }
 
-        .nav-links {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .nav-links a {
-            color: #ffc107;
-            text-decoration: none;
-            margin: 0 15px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: color 0.3s ease;
-        }
-
-        .nav-links a:hover {
-            color: #ffb300;
-        }
-
         .pricing-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -97,66 +78,82 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 193, 7, 0.2);
             border-radius: 8px;
-            padding: 30px;
+            padding: 40px 30px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
             position: relative;
+            transition: all 0.3s ease;
         }
 
         .pricing-card:hover {
             transform: translateY(-5px);
             border-color: #ffc107;
-            box-shadow: 0 12px 40px rgba(255, 193, 7, 0.2);
+            box-shadow: 0 10px 30px rgba(255, 193, 7, 0.2);
         }
 
         .pricing-card.featured {
-            border-color: #ffc107;
+            border: 2px solid #ffc107;
             transform: scale(1.05);
+        }
+
+        .pricing-card.featured::before {
+            content: 'POPULAR';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffc107;
+            color: #000;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            border-radius: 4px;
         }
 
         .plan-name {
             font-family: 'Bebas Neue', sans-serif;
             font-size: 24px;
-            letter-spacing: 1px;
             color: #ffc107;
             margin-bottom: 15px;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .price {
+        .plan-price {
             font-family: 'Bebas Neue', sans-serif;
             font-size: 42px;
-            color: #ffc107;
+            color: #fff;
             margin-bottom: 5px;
         }
 
-        .price-period {
+        .plan-period {
             font-size: 12px;
             color: #999;
             margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .features {
+        .plan-features {
             list-style: none;
             margin-bottom: 30px;
         }
 
-        .features li {
+        .plan-features li {
             padding: 10px 0;
-            font-size: 13px;
-            color: #e0e0e0;
             border-bottom: 1px solid rgba(255, 193, 7, 0.1);
+            font-size: 14px;
+            color: #e0e0e0;
         }
 
-        .features li:before {
+        .plan-features li:before {
             content: '✓ ';
-            color: #4caf50;
+            color: #ffc107;
             font-weight: bold;
-            margin-right: 10px;
+            margin-right: 8px;
         }
 
-        .select-btn {
+        .plan-btn {
             width: 100%;
             padding: 12px;
             background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
@@ -172,39 +169,51 @@
             text-transform: uppercase;
         }
 
-        .select-btn:hover {
+        .plan-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
         }
 
-        .select-btn:disabled {
-            opacity: 0.5;
+        .plan-btn:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .payment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .payment-modal.active {
+            display: flex;
         }
 
         .payment-card {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 193, 7, 0.2);
             border-radius: 8px;
-            padding: 30px;
+            padding: 40px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             max-width: 500px;
-            margin: 0 auto;
-            display: none;
+            width: 100%;
         }
 
-        .payment-card.active {
-            display: block;
-        }
-
-        .payment-title {
+        .payment-card h2 {
             font-family: 'Bebas Neue', sans-serif;
             font-size: 24px;
-            letter-spacing: 1px;
             color: #ffc107;
             margin-bottom: 20px;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .form-group {
@@ -223,7 +232,7 @@
 
         input {
             width: 100%;
-            padding: 12px;
+            padding: 12px 15px;
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 193, 7, 0.3);
             border-radius: 4px;
@@ -241,18 +250,22 @@
         }
 
         #card-element {
-            padding: 12px;
+            padding: 12px 15px;
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 193, 7, 0.3);
             border-radius: 4px;
             color: #e0e0e0;
         }
 
-        .pay-btn {
-            width: 100%;
+        .payment-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .payment-actions button {
+            flex: 1;
             padding: 12px;
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: #fff;
             border: none;
             border-radius: 4px;
             font-family: 'Bebas Neue', sans-serif;
@@ -260,145 +273,144 @@
             letter-spacing: 1px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
             text-transform: uppercase;
-            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .pay-btn {
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #000;
         }
 
         .pay-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
         }
 
-        .pay-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+
+        .cancel-btn:hover {
+            background: rgba(255, 193, 7, 0.1);
         }
 
         .error-message {
+            display: none;
             background: rgba(244, 67, 54, 0.2);
             border: 1px solid #f44336;
             color: #f44336;
             padding: 12px;
             border-radius: 4px;
             margin-bottom: 20px;
-            display: none;
+            font-size: 12px;
         }
 
         .success-message {
+            display: none;
             background: rgba(76, 175, 80, 0.2);
             border: 1px solid #4caf50;
             color: #4caf50;
             padding: 12px;
             border-radius: 4px;
             margin-bottom: 20px;
-            display: none;
+            font-size: 12px;
         }
 
-        .back-btn {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: rgba(255, 193, 7, 0.2);
-            color: #ffc107;
-            border: 1px solid #ffc107;
-            border-radius: 4px;
-            text-decoration: none;
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
             font-size: 12px;
+        }
+
+        .nav-links a {
+            color: #ffc107;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: color 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            transition: all 0.3s ease;
         }
 
-        .back-btn:hover {
-            background: #ffc107;
-            color: #000;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 32px;
-            }
-
-            .pricing-card.featured {
-                transform: scale(1);
-            }
-
-            .pricing-grid {
-                grid-template-columns: 1fr;
-            }
+        .nav-links a:hover {
+            color: #ffb300;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>TradeScore Pricing</h1>
+            <h1>TradeScore</h1>
             <p class="subtitle">Choose Your Plan</p>
-            <div class="nav-links">
-                <a href="/">Submit Lead</a>
-                <a href="/admin.html">View Dashboard</a>
-            </div>
         </header>
 
-        <div class="pricing-grid" id="pricingGrid">
+        <div class="pricing-grid">
             <div class="pricing-card">
                 <div class="plan-name">Starter</div>
-                <div class="price">£29.99</div>
-                <div class="price-period">per month</div>
-                <ul class="features">
-                    <li>Up to 10 leads/month</li>
-                    <li>AI scoring included</li>
+                <div class="plan-price">£29</div>
+                <div class="plan-period">Per Month</div>
+                <ul class="plan-features">
+                    <li>5 leads per month</li>
+                    <li>Basic lead scoring</li>
                     <li>Email support</li>
-                    <li>Basic analytics</li>
+                    <li>CSV export</li>
                 </ul>
-                <button class="select-btn" onclick="selectPlan('starter', 2999)">Select Plan</button>
+                <button class="plan-btn" onclick="openPaymentModal('starter', 2900)">Get Started</button>
             </div>
 
             <div class="pricing-card featured">
-                <div class="plan-name">Pro</div>
-                <div class="price">£99.99</div>
-                <div class="price-period">per month</div>
-                <ul class="features">
-                    <li>Unlimited leads</li>
+                <div class="plan-name">Professional</div>
+                <div class="plan-price">£79</div>
+                <div class="plan-period">Per Month</div>
+                <ul class="plan-features">
+                    <li>20 leads per month</li>
                     <li>Advanced AI scoring</li>
                     <li>Priority support</li>
-                    <li>Advanced analytics</li>
-                    <li>Lead export (CSV)</li>
+                    <li>CSV export</li>
+                    <li>Lead analytics</li>
                 </ul>
-                <button class="select-btn" onclick="selectPlan('pro', 9999)">Select Plan</button>
+                <button class="plan-btn" onclick="openPaymentModal('professional', 7900)">Get Started</button>
             </div>
 
             <div class="pricing-card">
-                <div class="plan-name">Premium</div>
-                <div class="price">£199.99</div>
-                <div class="price-period">per month</div>
-                <ul class="features">
-                    <li>Everything in Pro</li>
-                    <li>Custom integrations</li>
-                    <li>Dedicated account manager</li>
-                    <li>API access</li>
-                    <li>White-label options</li>
+                <div class="plan-name">Enterprise</div>
+                <div class="plan-price">£199</div>
+                <div class="plan-period">Per Month</div>
+                <ul class="plan-features">
+                    <li>Unlimited leads</li>
+                    <li>Premium AI scoring</li>
+                    <li>24/7 support</li>
+                    <li>CSV export</li>
+                    <li>Advanced analytics</li>
+                    <li>Custom integration</li>
                 </ul>
-                <button class="select-btn" onclick="selectPlan('premium', 19999)">Select Plan</button>
+                <button class="plan-btn" onclick="openPaymentModal('enterprise', 19900)">Get Started</button>
             </div>
         </div>
 
-        <div class="payment-card" id="paymentCard">
-            <div class="payment-title" id="paymentTitle">Complete Your Payment</div>
-            
+        <div class="nav-links">
+            <a href="index.html">Submit Lead</a>
+            <a href="admin.html">View Dashboard</a>
+        </div>
+    </div>
+
+    <div class="payment-modal" id="paymentModal">
+        <div class="payment-card">
+            <h2 id="modalTitle">Complete Payment</h2>
             <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage">✓ Payment successful! Welcome to TradeScore Pro.</div>
+            <div class="success-message" id="successMessage">Payment successful! Redirecting...</div>
 
             <form id="paymentForm">
                 <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" id="fullName" required>
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" required>
                 </div>
 
                 <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="email" required>
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" required>
                 </div>
 
                 <div class="form-group">
@@ -406,114 +418,93 @@
                     <div id="card-element"></div>
                 </div>
 
-                <button type="submit" class="pay-btn" id="payBtn">Pay Now</button>
+                <div class="payment-actions">
+                    <button type="submit" class="pay-btn" id="payBtn">Pay Now</button>
+                    <button type="button" class="cancel-btn" onclick="closePaymentModal()">Cancel</button>
+                </div>
             </form>
-
-            <a href="#" class="back-btn" onclick="backToPricing(); return false;">Back to Pricing</a>
         </div>
     </div>
 
     <script>
-        let stripe = null;
-        let elements = null;
-        let cardElement = null;
-        let selectedPlan = null;
-        let selectedAmount = null;
+        const stripe = Stripe('pk_test_YOUR_STRIPE_KEY');
+        const elements = stripe.elements();
+        const cardElement = elements.create('card');
 
-        // Initialize Stripe
-        async function initStripe() {
-            const response = await fetch('/api/create-payment-intent', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: 100 })
-            });
-            const data = await response.json();
+        let currentPlan = null;
+        let currentAmount = null;
+
+        function openPaymentModal(plan, amount) {
+            currentPlan = plan;
+            currentAmount = amount;
+            document.getElementById('modalTitle').textContent = `Complete ${plan.charAt(0).toUpperCase() + plan.slice(1)} Payment`;
+            document.getElementById('paymentModal').classList.add('active');
             
-            if (data.publishable_key) {
-                stripe = Stripe(data.publishable_key);
-                elements = stripe.elements();
-                cardElement = elements.create('card');
+            if (!cardElement.getElement()) {
                 cardElement.mount('#card-element');
             }
         }
 
-        function selectPlan(plan, amount) {
-            selectedPlan = plan;
-            selectedAmount = amount;
-            document.getElementById('pricingGrid').style.display = 'none';
-            document.getElementById('paymentCard').classList.add('active');
-            document.getElementById('paymentTitle').textContent = `Complete Your Payment - ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan (£${(amount/100).toFixed(2)}/month)`;
-        }
-
-        function backToPricing() {
-            document.getElementById('pricingGrid').style.display = 'grid';
-            document.getElementById('paymentCard').classList.remove('active');
-            selectedPlan = null;
-            selectedAmount = null;
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('active');
+            document.getElementById('paymentForm').reset();
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
         }
 
         document.getElementById('paymentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const fullName = document.getElementById('fullName').value;
             const email = document.getElementById('email').value;
-            const payBtn = document.getElementById('payBtn');
-            const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
-
-            payBtn.disabled = true;
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
+            const name = document.getElementById('name').value;
 
             try {
-                // Create payment intent
-                const intentResponse = await fetch('/api/create-payment-intent', {
+                const response = await fetch('https://tradeforce.onrender.com/api/create-payment-intent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        amount: selectedAmount,
-                        plan: selectedPlan,
+                        amount: currentAmount,
+                        plan: currentPlan,
                         email: email,
-                        name: fullName
+                        name: name
                     })
                 });
 
-                const intentData = await intentResponse.json();
+                const data = await response.json();
 
-                if (intentData.client_secret) {
-                    // Confirm payment
-                    const result = await stripe.confirmCardPayment(intentData.client_secret, {
-                        payment_method: {
-                            card: cardElement,
-                            billing_details: { name: fullName, email: email }
-                        }
-                    });
+                if (!response.ok) {
+                    throw new Error(data.error || 'Payment failed');
+                }
 
-                    if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                        successMessage.style.display = 'block';
-                        document.getElementById('paymentForm').reset();
-                        setTimeout(() => {
-                            window.location.href = '/admin.html';
-                        }, 2000);
-                    } else {
-                        errorMessage.textContent = result.error?.message || 'Payment failed. Please try again.';
-                        errorMessage.style.display = 'block';
+                const { clientSecret } = data;
+
+                const { paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: { name, email }
                     }
+                });
+
+                if (paymentIntent.status === 'succeeded') {
+                    document.getElementById('successMessage').style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 2000);
                 } else {
-                    errorMessage.textContent = 'Error creating payment. Please try again.';
-                    errorMessage.style.display = 'block';
+                    throw new Error('Payment not completed');
                 }
             } catch (error) {
-                errorMessage.textContent = 'Error processing payment. Please try again.';
-                errorMessage.style.display = 'block';
-                console.error('Error:', error);
-            } finally {
-                payBtn.disabled = false;
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('errorMessage').style.display = 'block';
             }
         });
 
-        // Initialize on load
-        window.addEventListener('load', initStripe);
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('paymentModal');
+            if (e.target === modal) {
+                closePaymentModal();
+            }
+        });
     </script>
 </body>
 </html>
