@@ -1,5 +1,10 @@
 import os
 import json
+import sqlite3
+import jwt
+import hashlib
+from datetime import datetime, timedelta
+from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from openai import OpenAI
@@ -10,9 +15,9 @@ app = Flask(__name__, static_folder='frontend', static_url_path='')
 # CORS Configuration
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["https://tradescoreglasgow-site.onrender.com", "http://localhost:3000", "http://localhost:5000"],
+        "origins": ["https://tradescoreglasgow-site.onrender.com", "http://localhost:3000", "http://localhost:5000", "https://profound-pixie-4460bc.netlify.app", "https://tradescore.uk"],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
@@ -22,9 +27,513 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 # Initialize Stripe
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
-# Data storage (in-memory for demo)
-leads = []
-lead_id_counter = 1
+# JWT Secret
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
+
+# Database setup
+DATABASE = 'tradeforce.db'
+
+def get_db():
+    """Get database connection"""
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    """Initialize database with tables"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Customers table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT,
+            trade TEXT NOT NULL,
+            postcode TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            subscription_tier TEXT DEFAULT 'free',
+            free_leads_remaining INTEGER DEFAULT 5,
+            stripe_customer_id TEXT
+        )
+    ''')
+    
+    # Leads table (homeowner submissions)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS leads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            service TEXT NOT NULL,
+            description TEXT,
+            location TEXT NOT NULL,
+            score INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            claimed_by INTEGER,
+            claimed_at TIMESTAMP,
+            FOREIGN KEY(claimed_by) REFERENCES customers(id)
+        )
+    ''')
+    
+    # Customer leads assignment table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS customer_leads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            lead_id INTEGER NOT NULL,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            claimed_at TIMESTAMP,
+            status TEXT DEFAULT 'available',
+            FOREIGN KEY(customer_id) REFERENCES customers(id),
+            FOREIGN KEY(lead_id) REFERENCES leads(id),
+            UNIQUE(customer_id, lead_id)
+        )
+    ''')
+    
+    # Subscriptions table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            tier TEXT NOT NULL,
+            stripe_subscription_id TEXT,
+            status TEXT DEFAULT 'active',
+            leads_per_month INTEGER,
+            leads_used_this_month INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            renews_at TIMESTAMP,
+            FOREIGN KEY(customer_id) REFERENCES customers(id)
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+# Initialize database on startup
+init_db()
+
+# Utility functions
+def hash_password(password):
+    """Hash password using SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password, password_hash):
+    """Verify password against hash"""
+    return hash_password(password) == password_hash
+
+def create_jwt_token(customer_id, email):
+    """Create JWT token"""
+    payload = {
+        'customer_id': customer_id,
+        'email': email,
+        'exp': datetime.utcnow() + timedelta(days=30)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
+
+def verify_jwt_token(token):
+    """Verify JWT token"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        return payload
+    except:
+        return None
+
+def token_required(f):
+    """Decorator to require JWT token"""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Missing authorization token'}), 401
+        
+        # Remove "Bearer " prefix if present
+        if token.startswith('Bearer '):
+            token = token[7:]
+        
+        payload = verify_jwt_token(token)
+        if not payload:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        
+        request.customer_id = payload['customer_id']
+        request.customer_email = payload['email']
+        return f(*args, **kwargs)
+    
+    return decorated
+
+# ==================== AUTHENTICATION ENDPOINTS ====================
+
+@app.route('/api/auth/signup', methods=['POST'])
+def signup():
+    """Register a new tradesperson"""
+    data = request.json
+    
+    # Validate input
+    required_fields = ['email', 'password', 'name', 'phone', 'trade', 'postcode']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    email = data.get('email')
+    password = data.get('password')
+    name = data.get('name')
+    phone = data.get('phone')
+    trade = data.get('trade')
+    postcode = data.get('postcode')
+    
+    # Validate email format
+    if '@' not in email:
+        return jsonify({'error': 'Invalid email format'}), 400
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if email already exists
+        cursor.execute('SELECT id FROM customers WHERE email = ?', (email,))
+        if cursor.fetchone():
+            return jsonify({'error': 'Email already registered'}), 409
+        
+        # Hash password
+        password_hash = hash_password(password)
+        
+        # Create customer
+        cursor.execute('''
+            INSERT INTO customers (email, password_hash, name, phone, trade, postcode)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (email, password_hash, name, phone, trade, postcode))
+        
+        customer_id = cursor.lastrowid
+        
+        # Assign 5 free leads
+        cursor.execute('''
+            SELECT id FROM leads 
+            WHERE claimed_by IS NULL 
+            AND service = ? 
+            LIMIT 5
+        ''', (trade,))
+        
+        free_leads = cursor.fetchall()
+        for lead in free_leads:
+            cursor.execute('''
+                INSERT INTO customer_leads (customer_id, lead_id, status)
+                VALUES (?, ?, 'available')
+            ''', (customer_id, lead['id']))
+        
+        # Create JWT token
+        token = create_jwt_token(customer_id, email)
+        
+        conn.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'customer_id': customer_id,
+            'token': token,
+            'free_leads': len(free_leads)
+        }), 201
+    
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Login a tradesperson"""
+    data = request.json
+    
+    if not data.get('email') or not data.get('password'):
+        return jsonify({'error': 'Email and password required'}), 400
+    
+    email = data.get('email')
+    password = data.get('password')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('SELECT id, password_hash, name FROM customers WHERE email = ?', (email,))
+        customer = cursor.fetchone()
+        
+        if not customer or not verify_password(password, customer['password_hash']):
+            return jsonify({'error': 'Invalid email or password'}), 401
+        
+        # Create JWT token
+        token = create_jwt_token(customer['id'], email)
+        
+        return jsonify({
+            'status': 'success',
+            'customer_id': customer['id'],
+            'name': customer['name'],
+            'token': token
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
+
+# ==================== CUSTOMER PORTAL ENDPOINTS ====================
+
+@app.route('/api/customer/profile', methods=['GET'])
+@token_required
+def get_profile():
+    """Get customer profile"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            SELECT id, email, name, phone, trade, postcode, subscription_tier, free_leads_remaining
+            FROM customers WHERE id = ?
+        ''', (request.customer_id,))
+        
+        customer = cursor.fetchone()
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+        
+        return jsonify({
+            'id': customer['id'],
+            'email': customer['email'],
+            'name': customer['name'],
+            'phone': customer['phone'],
+            'trade': customer['trade'],
+            'postcode': customer['postcode'],
+            'subscription_tier': customer['subscription_tier'],
+            'free_leads_remaining': customer['free_leads_remaining']
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
+
+@app.route('/api/customer/leads', methods=['GET'])
+@token_required
+def get_customer_leads():
+    """Get leads available for customer"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Get customer's trade
+        cursor.execute('SELECT trade FROM customers WHERE id = ?', (request.customer_id,))
+        customer = cursor.fetchone()
+        if not customer:
+            return jsonify({'error': 'Customer not found'}), 404
+        
+        # Get leads assigned to this customer
+        cursor.execute('''
+            SELECT l.id, l.name, l.email, l.phone, l.service, l.description, l.location, l.score, l.created_at
+            FROM leads l
+            JOIN customer_leads cl ON l.id = cl.lead_id
+            WHERE cl.customer_id = ? AND cl.status = 'available'
+            ORDER BY l.score DESC
+        ''', (request.customer_id,))
+        
+        leads = []
+        for row in cursor.fetchall():
+            leads.append({
+                'id': row['id'],
+                'name': row['name'],
+                'email': row['email'],
+                'phone': row['phone'],
+                'service': row['service'],
+                'description': row['description'],
+                'location': row['location'],
+                'score': row['score'],
+                'created_at': row['created_at']
+            })
+        
+        return jsonify({'leads': leads, 'count': len(leads)}), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
+
+@app.route('/api/customer/leads/<int:lead_id>', methods=['GET'])
+@token_required
+def get_lead_details(lead_id):
+    """Get details of a specific lead"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Verify customer has access to this lead
+        cursor.execute('''
+            SELECT l.id, l.name, l.email, l.phone, l.service, l.description, l.location, l.score, l.created_at
+            FROM leads l
+            JOIN customer_leads cl ON l.id = cl.lead_id
+            WHERE l.id = ? AND cl.customer_id = ?
+        ''', (lead_id, request.customer_id))
+        
+        lead = cursor.fetchone()
+        if not lead:
+            return jsonify({'error': 'Lead not found or not assigned to you'}), 404
+        
+        return jsonify({
+            'id': lead['id'],
+            'name': lead['name'],
+            'email': lead['email'],
+            'phone': lead['phone'],
+            'service': lead['service'],
+            'description': lead['description'],
+            'location': lead['location'],
+            'score': lead['score'],
+            'created_at': lead['created_at']
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
+
+@app.route('/api/customer/leads/<int:lead_id>/claim', methods=['POST'])
+@token_required
+def claim_lead(lead_id):
+    """Claim a lead (mark as claimed)"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Verify customer has access to this lead
+        cursor.execute('''
+            SELECT cl.id, cl.status FROM customer_leads cl
+            WHERE cl.lead_id = ? AND cl.customer_id = ?
+        ''', (lead_id, request.customer_id))
+        
+        customer_lead = cursor.fetchone()
+        if not customer_lead:
+            return jsonify({'error': 'Lead not found or not assigned to you'}), 404
+        
+        if customer_lead['status'] != 'available':
+            return jsonify({'error': 'Lead already claimed'}), 400
+        
+        # Mark as claimed
+        cursor.execute('''
+            UPDATE customer_leads SET status = 'claimed', claimed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (customer_lead['id'],))
+        
+        cursor.execute('''
+            UPDATE leads SET claimed_by = ?, claimed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (request.customer_id, lead_id))
+        
+        conn.commit()
+        
+        return jsonify({'status': 'success', 'message': 'Lead claimed'}), 200
+    
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
+
+@app.route('/api/customer/subscribe', methods=['POST'])
+@token_required
+def subscribe():
+    """Subscribe to a plan"""
+    data = request.json
+    tier = data.get('tier', 'basic')  # basic, pro, unlimited
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        # Get customer
+        cursor.execute('SELECT stripe_customer_id FROM customers WHERE id = ?', (request.customer_id,))
+        customer = cursor.fetchone()
+        
+        # Define tier details
+        tiers = {
+            'basic': {'price': 2900, 'leads': 10},
+            'pro': {'price': 7900, 'leads': 50},
+            'unlimited': {'price': 19900, 'leads': 999}
+        }
+        
+        if tier not in tiers:
+            return jsonify({'error': 'Invalid tier'}), 400
+        
+        tier_info = tiers[tier]
+        
+        # Create Stripe payment intent
+        intent = stripe.PaymentIntent.create(
+            amount=tier_info['price'],
+            currency='gbp',
+            metadata={
+                'customer_id': request.customer_id,
+                'tier': tier
+            }
+        )
+        
+        return jsonify({
+            'client_secret': intent.client_secret,
+            'publishable_key': os.getenv('STRIPE_PUBLISHABLE_KEY'),
+            'amount': tier_info['price'],
+            'leads': tier_info['leads']
+        }), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
+
+@app.route('/api/customer/subscription/confirm', methods=['POST'])
+@token_required
+def confirm_subscription():
+    """Confirm subscription after payment"""
+    data = request.json
+    tier = data.get('tier')
+    stripe_subscription_id = data.get('stripe_subscription_id')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        tiers = {
+            'basic': {'leads': 10},
+            'pro': {'leads': 50},
+            'unlimited': {'leads': 999}
+        }
+        
+        if tier not in tiers:
+            return jsonify({'error': 'Invalid tier'}), 400
+        
+        # Update customer subscription
+        cursor.execute('''
+            UPDATE customers SET subscription_tier = ? WHERE id = ?
+        ''', (tier, request.customer_id))
+        
+        # Create subscription record
+        cursor.execute('''
+            INSERT INTO subscriptions (customer_id, tier, stripe_subscription_id, status, leads_per_month)
+            VALUES (?, ?, ?, 'active', ?)
+        ''', (request.customer_id, tier, stripe_subscription_id, tiers[tier]['leads']))
+        
+        conn.commit()
+        
+        return jsonify({'status': 'success', 'tier': tier}), 200
+    
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
+
+# ==================== EXISTING ENDPOINTS (HOMEOWNER SIDE) ====================
 
 # Routes for HTML files
 @app.route('/')
@@ -42,38 +551,86 @@ def payment():
 # API Routes
 @app.route('/api/submit-lead', methods=['POST'])
 def submit_lead():
-    global lead_id_counter
-    
+    """Submit a lead from homeowner"""
     data = request.json
     
-    lead = {
-        'id': lead_id_counter,
-        'name': data.get('name'),
-        'email': data.get('email'),
-        'phone': data.get('phone'),
-        'service': data.get('service'),
-        'description': data.get('description'),
-        'location': data.get('location'),
-        'score': None
-    }
+    conn = get_db()
+    cursor = conn.cursor()
     
-    leads.append(lead)
-    lead_id_counter += 1
+    try:
+        cursor.execute('''
+            INSERT INTO leads (name, email, phone, service, description, location)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (
+            data.get('name'),
+            data.get('email'),
+            data.get('phone'),
+            data.get('service'),
+            data.get('description'),
+            data.get('location')
+        ))
+        
+        lead_id = cursor.lastrowid
+        conn.commit()
+        
+        return jsonify({'lead_id': lead_id, 'status': 'success'}), 201
     
-    return jsonify({'lead_id': lead['id'], 'status': 'success'}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
 
 @app.route('/api/get-leads', methods=['GET'])
 def get_leads():
-    return jsonify({'leads': leads}), 200
+    """Get all leads (for admin)"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            SELECT id, name, email, phone, service, description, location, score, created_at, claimed_by
+            FROM leads
+            ORDER BY created_at DESC
+        ''')
+        
+        leads = []
+        for row in cursor.fetchall():
+            leads.append({
+                'id': row['id'],
+                'name': row['name'],
+                'email': row['email'],
+                'phone': row['phone'],
+                'service': row['service'],
+                'description': row['description'],
+                'location': row['location'],
+                'score': row['score'],
+                'created_at': row['created_at'],
+                'claimed_by': row['claimed_by']
+            })
+        
+        return jsonify({'leads': leads}), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
 
 @app.route('/api/score-lead/<int:lead_id>', methods=['POST'])
 def score_lead(lead_id):
-    lead = next((l for l in leads if l['id'] == lead_id), None)
-    
-    if not lead:
-        return jsonify({'error': 'Lead not found'}), 404
+    """Score a single lead using AI"""
+    conn = get_db()
+    cursor = conn.cursor()
     
     try:
+        cursor.execute('SELECT * FROM leads WHERE id = ?', (lead_id,))
+        lead = cursor.fetchone()
+        
+        if not lead:
+            return jsonify({'error': 'Lead not found'}), 404
+        
         prompt = f"""Score this lead on a scale of 1-100 based on quality and likelihood to convert.
         
 Lead Details:
@@ -90,16 +647,31 @@ Respond with ONLY a number between 1-100."""
         )
         
         score = int(response.choices[0].message.content.strip())
-        lead['score'] = score
+        
+        cursor.execute('UPDATE leads SET score = ? WHERE id = ?', (score, lead_id))
+        conn.commit()
         
         return jsonify({'lead_id': lead_id, 'score': score}), 200
+    
     except Exception as e:
+        conn.rollback()
         return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
 
 @app.route('/api/score-all-leads', methods=['POST'])
 def score_all_leads():
-    for lead in leads:
-        if lead['score'] is None:
+    """Score all unscored leads"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('SELECT id, name, service, description, location FROM leads WHERE score IS NULL')
+        leads = cursor.fetchall()
+        
+        scored_count = 0
+        for lead in leads:
             try:
                 prompt = f"""Score this lead on a scale of 1-100.
 Lead: {lead['name']} - {lead['service']} - {lead['description']}
@@ -110,14 +682,26 @@ Respond with ONLY a number."""
                     messages=[{'role': 'user', 'content': prompt}]
                 )
                 
-                lead['score'] = int(response.choices[0].message.content.strip())
+                score = int(response.choices[0].message.content.strip())
+                cursor.execute('UPDATE leads SET score = ? WHERE id = ?', (score, lead['id']))
+                scored_count += 1
             except:
-                lead['score'] = 50
+                cursor.execute('UPDATE leads SET score = ? WHERE id = ?', (50, lead['id']))
+                scored_count += 1
+        
+        conn.commit()
+        return jsonify({'status': 'success', 'scored': scored_count}), 200
     
-    return jsonify({'status': 'success', 'scored': len(leads)}), 200
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    
+    finally:
+        conn.close()
 
 @app.route('/api/create-payment-intent', methods=['POST'])
 def create_payment_intent():
+    """Create Stripe payment intent"""
     data = request.json
     amount = data.get('amount', 2999)
     
