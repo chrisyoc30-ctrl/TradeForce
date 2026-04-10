@@ -152,21 +152,29 @@ def token_required(f):
     """Decorator to require token"""
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({'error': 'Missing authorization token'}), 401
-        
-        # Remove "Bearer " prefix if present
-        if token.startswith('Bearer '):
-            token = token[7:]
-        
-        payload = verify_token(token)
-        if not payload:
-            return jsonify({'error': 'Invalid or expired token'}), 401
-        
-        request.customer_id = payload['customer_id']
-        request.customer_email = payload['email']
-        return f(*args, **kwargs)
+        try:
+            auth_header = request.headers.get('Authorization', '')
+            if not auth_header:
+                return jsonify({'error': 'Missing authorization token'}), 401
+            
+            # Extract token
+            token = auth_header
+            if token.startswith('Bearer '):
+                token = token[7:]
+            
+            # Verify token
+            payload = verify_token(token)
+            if not payload:
+                return jsonify({'error': 'Invalid or expired token'}), 401
+            
+            # Set request attributes
+            request.customer_id = payload['customer_id']
+            request.customer_email = payload['email']
+            
+            # Call the actual function
+            return f(*args, **kwargs)
+        except Exception as e:
+            return jsonify({'error': f'Auth error: {str(e)}'}), 401
     
     return decorated
 
