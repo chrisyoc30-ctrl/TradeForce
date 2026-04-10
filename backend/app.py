@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from openai import OpenAI
 import stripe
 
 app = Flask(__name__, static_folder='frontend', static_url_path='')
@@ -20,9 +19,6 @@ CORS(app, resources={
         "allow_headers": ["Content-Type", "Authorization"]
     }
 })
-
-# Initialize OpenAI
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Initialize Stripe
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
@@ -631,23 +627,22 @@ def score_lead(lead_id):
         if not lead:
             return jsonify({'error': 'Lead not found'}), 404
         
-        prompt = f"""Score this lead on a scale of 1-100 based on quality and likelihood to convert.
+        # Simple scoring logic: score based on description length and keywords
+        description = lead['description'].lower()
+        score = 50  # Base score
         
-Lead Details:
-- Name: {lead['name']}
-- Service: {lead['service']}
-- Description: {lead['description']}
-- Location: {lead['location']}
-
-Respond with ONLY a number between 1-100."""
+        # Boost score for quality indicators
+        if len(description) > 100:
+            score += 15
+        if 'urgent' in description or 'asap' in description:
+            score += 10
+        if 'budget' in description:
+            score += 10
+        if 'quote' in description or 'estimate' in description:
+            score += 5
         
-        response = client.chat.completions.create(
-            model='gpt-3.5-turbo',
-            messages=[{'role': 'user', 'content': prompt}]
-        )
-        
-        score = int(response.choices[0].message.content.strip())
-        
+        # Cap at 100
+        score = min(score, 100)     
         cursor.execute('UPDATE leads SET score = ? WHERE id = ?', (score, lead_id))
         conn.commit()
         
@@ -673,16 +668,16 @@ def score_all_leads():
         scored_count = 0
         for lead in leads:
             try:
-                prompt = f"""Score this lead on a scale of 1-100.
-Lead: {lead['name']} - {lead['service']} - {lead['description']}
-Respond with ONLY a number."""
-                
-                response = client.chat.completions.create(
-                    model='gpt-3.5-turbo',
-                    messages=[{'role': 'user', 'content': prompt}]
-                )
-                
-                score = int(response.choices[0].message.content.strip())
+                # Simple scoring logic
+                description = lead['description'].lower()
+                score = 50
+                if len(description) > 100:
+                    score += 15
+                if 'urgent' in description or 'asap' in description:
+                    score += 10
+                if 'budget' in description:
+                    score += 10
+                score = min(score, 100)
                 cursor.execute('UPDATE leads SET score = ? WHERE id = ?', (score, lead['id']))
                 scored_count += 1
             except:
