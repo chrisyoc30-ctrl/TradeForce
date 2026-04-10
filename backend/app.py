@@ -1,8 +1,8 @@
 import os
 import json
 import sqlite3
-import jwt
 import hashlib
+import base64
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory
@@ -27,8 +27,8 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 # Initialize Stripe
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
-# JWT Secret
-JWT_SECRET = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
+# Token Secret
+TOKEN_SECRET = os.getenv('JWT_SECRET', 'your-secret-key-change-in-production')
 
 # Database setup
 DATABASE = 'tradeforce.db'
@@ -125,25 +125,25 @@ def verify_password(password, password_hash):
     """Verify password against hash"""
     return hash_password(password) == password_hash
 
-def create_jwt_token(customer_id, email):
-    """Create JWT token"""
-    payload = {
-        'customer_id': customer_id,
-        'email': email,
-        'exp': datetime.utcnow() + timedelta(days=30)
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm='HS256')
+def create_token(customer_id, email):
+    """Create simple base64 token"""
+    payload = f"{customer_id}:{email}:{datetime.utcnow().isoformat()}"
+    token = base64.b64encode(payload.encode()).decode()
+    return token
 
-def verify_jwt_token(token):
-    """Verify JWT token"""
+def verify_token(token):
+    """Verify base64 token"""
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-        return payload
+        payload = base64.b64decode(token).decode()
+        parts = payload.split(':')
+        if len(parts) >= 2:
+            return {'customer_id': int(parts[0]), 'email': parts[1]}
+        return None
     except:
         return None
 
 def token_required(f):
-    """Decorator to require JWT token"""
+    """Decorator to require token"""
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get('Authorization')
@@ -154,7 +154,7 @@ def token_required(f):
         if token.startswith('Bearer '):
             token = token[7:]
         
-        payload = verify_jwt_token(token)
+        payload = verify_token(token)
         if not payload:
             return jsonify({'error': 'Invalid or expired token'}), 401
         
@@ -222,8 +222,8 @@ def signup():
                 VALUES (?, ?, 'available')
             ''', (customer_id, lead['id']))
         
-        # Create JWT token
-        token = create_jwt_token(customer_id, email)
+        # Create token
+        token = create_token(customer_id, email)
         
         conn.commit()
         
@@ -262,8 +262,8 @@ def login():
         if not customer or not verify_password(password, customer['password_hash']):
             return jsonify({'error': 'Invalid email or password'}), 401
         
-        # Create JWT token
-        token = create_jwt_token(customer['id'], email)
+        # Create token
+        token = create_token(customer['id'], email)
         
         return jsonify({
             'status': 'success',
