@@ -290,16 +290,18 @@ def login():
 @token_required
 def get_profile():
     """Get customer profile"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
     try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
         cursor.execute('''
             SELECT id, email, name, phone, trade, postcode, subscription_tier, free_leads_remaining
             FROM customers WHERE id = ?
         ''', (request.customer_id,))
         
         customer = cursor.fetchone()
+        conn.close()
+        
         if not customer:
             return jsonify({'error': 'Customer not found'}), 404
         
@@ -315,33 +317,24 @@ def get_profile():
         }), 200
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    
-    finally:
-        conn.close()
+        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
 
 @app.route('/api/customer/leads', methods=['GET'])
 @token_required
 def get_customer_leads():
     """Get leads available for customer"""
-    conn = get_db()
-    cursor = conn.cursor()
-    
     try:
-        # Get customer's trade
-        cursor.execute('SELECT trade FROM customers WHERE id = ?', (request.customer_id,))
-        customer = cursor.fetchone()
-        if not customer:
-            return jsonify({'error': 'Customer not found'}), 404
+        conn = get_db()
+        cursor = conn.cursor()
         
         # Get leads assigned to this customer
         cursor.execute('''
             SELECT l.id, l.name, l.email, l.phone, l.service, l.description, l.location, l.score, l.created_at
             FROM leads l
-            JOIN customer_leads cl ON l.id = cl.lead_id
+            LEFT JOIN customer_leads cl ON l.id = cl.lead_id AND cl.customer_id = ?
             WHERE cl.customer_id = ? AND cl.status = 'available'
-            ORDER BY l.score DESC
-        ''', (request.customer_id,))
+            ORDER BY l.score DESC NULLS LAST
+        ''', (request.customer_id, request.customer_id))
         
         leads = []
         for row in cursor.fetchall():
@@ -357,13 +350,11 @@ def get_customer_leads():
                 'created_at': row['created_at']
             })
         
+        conn.close()
         return jsonify({'leads': leads, 'count': len(leads)}), 200
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    
-    finally:
-        conn.close()
+        return jsonify({'error': str(e), 'type': type(e).__name__}), 500
 
 @app.route('/api/customer/leads/<int:lead_id>', methods=['GET'])
 @token_required
