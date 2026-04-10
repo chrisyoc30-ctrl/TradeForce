@@ -8,6 +8,7 @@ from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import stripe
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, static_folder='frontend', static_url_path='')
 
@@ -114,12 +115,12 @@ init_db()
 
 # Utility functions
 def hash_password(password):
-    """Hash password using SHA256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash password using werkzeug"""
+    return generate_password_hash(password)
 
 def verify_password(password, password_hash):
     """Verify password against hash"""
-    return hash_password(password) == password_hash
+    return check_password_hash(password_hash, password)
 
 def create_token(customer_id, email):
     """Create simple base64 token"""
@@ -128,14 +129,23 @@ def create_token(customer_id, email):
     return token
 
 def verify_token(token):
-    """Verify base64 token"""
+    """Verify base64 token with expiration check"""
     try:
         payload = base64.b64decode(token).decode()
         parts = payload.split(':')
-        if len(parts) >= 2:
-            return {'customer_id': int(parts[0]), 'email': parts[1]}
+        if len(parts) >= 3:
+            customer_id = int(parts[0])
+            email = parts[1]
+            timestamp_str = parts[2]
+            
+            # Check if token is expired (30 days)
+            token_time = datetime.fromisoformat(timestamp_str)
+            if datetime.utcnow() - token_time > timedelta(days=30):
+                return None
+            
+            return {'customer_id': customer_id, 'email': email}
         return None
-    except:
+    except Exception:
         return None
 
 def token_required(f):
@@ -550,6 +560,20 @@ def submit_lead():
     """Submit a lead from homeowner"""
     data = request.json
     
+    # Validate required fields
+    required_fields = ['name', 'email', 'phone', 'service', 'location']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    # Validate email format
+    if '@' not in data.get('email', ''):
+        return jsonify({'error': 'Invalid email format'}), 400
+    
+    # Validate phone format (basic check)
+    phone = data.get('phone', '').replace(' ', '')
+    if len(phone) < 10:
+        return jsonify({'error': 'Invalid phone number'}), 400
+    
     conn = get_db()
     cursor = conn.cursor()
     
@@ -558,12 +582,12 @@ def submit_lead():
             INSERT INTO leads (name, email, phone, service, description, location)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (
-            data.get('name'),
-            data.get('email'),
-            data.get('phone'),
-            data.get('service'),
-            data.get('description'),
-            data.get('location')
+            data.get('name').strip(),
+            data.get('email').strip().lower(),
+            data.get('phone').strip(),
+            data.get('service').strip(),
+            data.get('description', '').strip(),
+            data.get('location').strip()
         ))
         
         lead_id = cursor.lastrowid
@@ -580,7 +604,11 @@ def submit_lead():
 
 @app.route('/api/get-leads', methods=['GET'])
 def get_leads():
-    """Get all leads (for admin)"""
+    """Get all leads (for admin) - requires API key"""
+    # Basic API key check
+    api_key = request.headers.get('X-API-Key')
+    if api_key != os.getenv('ADMIN_API_KEY', 'change-me-in-production'):
+        return jsonify({'error': 'Unauthorized'}), 401
     conn = get_db()
     cursor = conn.cursor()
     
@@ -680,7 +708,8 @@ def score_all_leads():
                 score = min(score, 100)
                 cursor.execute('UPDATE leads SET score = ? WHERE id = ?', (score, lead['id']))
                 scored_count += 1
-            except:
+            except Exception as e:
+                # Log the error but continue
                 cursor.execute('UPDATE leads SET score = ? WHERE id = ?', (50, lead['id']))
                 scored_count += 1
         
@@ -699,6 +728,10 @@ def create_payment_intent():
     """Create Stripe payment intent"""
     data = request.json
     amount = data.get('amount', 2999)
+    
+    # Validate amount
+    if amount < 100:
+        return jsonify({'error': 'Amount must be at least £1.00'}), 400
     
     try:
         intent = stripe.PaymentIntent.create(
