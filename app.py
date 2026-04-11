@@ -1,7 +1,6 @@
-"""TradeForce Backend API - PostgreSQL Version"""
+"""TradeForce Backend API - SQLite Version"""
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import sqlite3
 import base64
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,78 +10,76 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-# PostgreSQL connection
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DB_PATH = 'tradeforce.db'
 
 def get_db():
     """Get database connection"""
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     """Initialize database tables"""
+    if os.path.exists(DB_PATH):
+        return
+    
     conn = get_db()
     cursor = conn.cursor()
     
-    try:
-        # Create customers table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS customers (
-                id SERIAL PRIMARY KEY,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                name TEXT NOT NULL,
-                phone TEXT,
-                trade TEXT,
-                postcode TEXT,
-                subscription_tier TEXT DEFAULT 'free',
-                free_leads_remaining INTEGER DEFAULT 5,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Create leads table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS leads (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                phone TEXT,
-                description TEXT,
-                location TEXT,
-                trade TEXT,
-                postcode TEXT,
-                score INTEGER,
-                claimed_by INTEGER,
-                claimed_at TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (claimed_by) REFERENCES customers(id)
-            )
-        ''')
-        
-        # Create transactions table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS transactions (
-                id SERIAL PRIMARY KEY,
-                customer_id INTEGER NOT NULL,
-                lead_id INTEGER,
-                amount DECIMAL(10, 2),
-                transaction_type TEXT,
-                status TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (customer_id) REFERENCES customers(id),
-                FOREIGN KEY (lead_id) REFERENCES leads(id)
-            )
-        ''')
-        
-        conn.commit()
-        print("✓ Database tables initialized")
-    except Exception as e:
-        print(f"✗ Database initialization error: {e}")
-        conn.rollback()
-    finally:
-        cursor.close()
-        conn.close()
+    # Create customers table
+    cursor.execute('''
+        CREATE TABLE customers (
+            id INTEGER PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT,
+            trade TEXT,
+            postcode TEXT,
+            subscription_tier TEXT DEFAULT 'free',
+            free_leads_remaining INTEGER DEFAULT 5,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create leads table
+    cursor.execute('''
+        CREATE TABLE leads (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            phone TEXT,
+            description TEXT,
+            location TEXT,
+            trade TEXT,
+            postcode TEXT,
+            score INTEGER,
+            claimed_by INTEGER,
+            claimed_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (claimed_by) REFERENCES customers(id)
+        )
+    ''')
+    
+    # Create transactions table
+    cursor.execute('''
+        CREATE TABLE transactions (
+            id INTEGER PRIMARY KEY,
+            customer_id INTEGER NOT NULL,
+            lead_id INTEGER,
+            amount DECIMAL(10, 2),
+            transaction_type TEXT,
+            status TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES customers(id),
+            FOREIGN KEY (lead_id) REFERENCES leads(id)
+        )
+    ''')
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print("✓ Database initialized")
 
 def create_token(customer_id, email):
     """Create authentication token"""
@@ -135,14 +132,10 @@ def signup():
         try:
             cursor.execute('''
                 INSERT INTO customers (email, password_hash, name, phone, trade, postcode)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                RETURNING id, free_leads_remaining
+                VALUES (?, ?, ?, ?, ?, ?)
             ''', (email, password_hash, name, phone, trade, postcode))
             
-            result = cursor.fetchone()
-            customer_id = result[0]
-            free_leads = result[1]
-            
+            customer_id = cursor.lastrowid
             conn.commit()
             
             token = create_token(customer_id, email)
@@ -151,10 +144,9 @@ def signup():
                 'status': 'success',
                 'customer_id': customer_id,
                 'token': token,
-                'free_leads': free_leads
+                'free_leads': 5
             }), 201
-        except psycopg2.IntegrityError:
-            conn.rollback()
+        except sqlite3.IntegrityError:
             return jsonify({'error': 'Email already exists'}), 409
         finally:
             cursor.close()
@@ -176,7 +168,7 @@ def login():
         conn = get_db()
         cursor = conn.cursor()
         
-        cursor.execute('SELECT id, password_hash, free_leads_remaining FROM customers WHERE email = %s', (email,))
+        cursor.execute('SELECT id, password_hash, free_leads_remaining FROM customers WHERE email = ?', (email,))
         result = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -218,7 +210,7 @@ def get_profile():
         cursor = conn.cursor()
         cursor.execute('''
             SELECT id, email, name, phone, trade, postcode, subscription_tier, free_leads_remaining
-            FROM customers WHERE id = %s
+            FROM customers WHERE id = ?
         ''', (customer_id,))
         result = cursor.fetchone()
         cursor.close()
@@ -228,14 +220,14 @@ def get_profile():
             return jsonify({'error': 'Customer not found'}), 404
         
         customer = {
-            'id': result[0],
-            'email': result[1],
-            'name': result[2],
-            'phone': result[3],
-            'trade': result[4],
-            'postcode': result[5],
-            'subscription_tier': result[6],
-            'free_leads_remaining': result[7]
+            'id': result['id'],
+            'email': result['email'],
+            'name': result['name'],
+            'phone': result['phone'],
+            'trade': result['trade'],
+            'postcode': result['postcode'],
+            'subscription_tier': result['subscription_tier'],
+            'free_leads_remaining': result['free_leads_remaining']
         }
         
         return jsonify(customer), 200
@@ -267,16 +259,16 @@ def get_customer_leads():
         leads = []
         for row in results:
             leads.append({
-                'id': row[0],
-                'name': row[1],
-                'email': row[2],
-                'phone': row[3],
-                'description': row[4],
-                'location': row[5],
-                'trade': row[6],
-                'postcode': row[7],
-                'score': row[8],
-                'claimed_by': row[9]
+                'id': row['id'],
+                'name': row['name'],
+                'email': row['email'],
+                'phone': row['phone'],
+                'description': row['description'],
+                'location': row['location'],
+                'trade': row['trade'],
+                'postcode': row['postcode'],
+                'score': row['score'],
+                'claimed_by': row['claimed_by']
             })
         
         return jsonify({'leads': leads}), 200
@@ -299,7 +291,7 @@ def claim_lead(lead_id):
         cursor = conn.cursor()
         
         # Check if lead exists and is unclaimed
-        cursor.execute('SELECT id, claimed_by FROM leads WHERE id = %s', (lead_id,))
+        cursor.execute('SELECT id, claimed_by FROM leads WHERE id = ?', (lead_id,))
         lead = cursor.fetchone()
         
         if not lead:
@@ -307,21 +299,21 @@ def claim_lead(lead_id):
             conn.close()
             return jsonify({'error': 'Lead not found'}), 404
         
-        if lead[1] is not None:
+        if lead['claimed_by'] is not None:
             cursor.close()
             conn.close()
             return jsonify({'error': 'Lead already claimed'}), 409
         
         # Claim the lead
         cursor.execute('''
-            UPDATE leads SET claimed_by = %s, claimed_at = CURRENT_TIMESTAMP
-            WHERE id = %s
+            UPDATE leads SET claimed_by = ?, claimed_at = CURRENT_TIMESTAMP
+            WHERE id = ?
         ''', (customer_id, lead_id))
         
         # Deduct free lead
         cursor.execute('''
             UPDATE customers SET free_leads_remaining = free_leads_remaining - 1
-            WHERE id = %s
+            WHERE id = ?
         ''', (customer_id,))
         
         conn.commit()
@@ -355,11 +347,10 @@ def submit_lead():
         
         cursor.execute('''
             INSERT INTO leads (name, email, phone, description, location, trade, postcode)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (name, email, phone, description, location, trade, postcode))
         
-        lead_id = cursor.fetchone()[0]
+        lead_id = cursor.lastrowid
         conn.commit()
         cursor.close()
         conn.close()
@@ -384,11 +375,11 @@ def score_all_leads():
         leads = cursor.fetchall()
         
         for lead in leads:
-            cursor.execute('SELECT description FROM leads WHERE id = %s', (lead[0],))
+            cursor.execute('SELECT description FROM leads WHERE id = ?', (lead['id'],))
             lead_data = cursor.fetchone()
             
             score = 50
-            desc = (lead_data[0] or '').lower()
+            desc = (lead_data['description'] or '').lower()
             
             if 'urgent' in desc or 'asap' in desc:
                 score += 20
@@ -398,7 +389,7 @@ def score_all_leads():
                 score += 10
             
             score = min(100, score)
-            cursor.execute('UPDATE leads SET score = %s WHERE id = %s', (score, lead[0]))
+            cursor.execute('UPDATE leads SET score = ? WHERE id = ?', (score, lead['id']))
         
         conn.commit()
         cursor.close()
@@ -429,16 +420,16 @@ def get_all_leads():
         leads = []
         for row in results:
             leads.append({
-                'id': row[0],
-                'name': row[1],
-                'email': row[2],
-                'phone': row[3],
-                'description': row[4],
-                'location': row[5],
-                'trade': row[6],
-                'postcode': row[7],
-                'score': row[8],
-                'claimed_by': row[9]
+                'id': row['id'],
+                'name': row['name'],
+                'email': row['email'],
+                'phone': row['phone'],
+                'description': row['description'],
+                'location': row['location'],
+                'trade': row['trade'],
+                'postcode': row['postcode'],
+                'score': row['score'],
+                'claimed_by': row['claimed_by']
             })
         
         return jsonify({'leads': leads}), 200
