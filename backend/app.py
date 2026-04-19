@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from pymongo import MongoClient
 import os
+import sys
 
 app = Flask(__name__)
 CORS(app)
@@ -47,6 +48,14 @@ def get_leads():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+if __name__ == '__main__':
+    try:
+        port = int(os.environ.get('PORT', 5000))
+    except ValueError:
+        port = 5000
+    
+    try:
+        app.run(host='0.0.0.0', port=port, debug=False)
+    except Exception as e:
+        print(f"Error starting app: {e}", file=sys.stderr)
+        sys.exit(1)
