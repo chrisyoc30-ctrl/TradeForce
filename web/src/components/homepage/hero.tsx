@@ -41,7 +41,7 @@ export function HomeHero() {
           Stop Competing With 10 Other Glasgow Trades
         </h1>
 
-        <p className="mt-6 max-w-2xl text-pretty text-lg text-muted-foreground sm:text-xl">
+        <p className="mt-6 max-w-2xl text-pretty text-lg text-slate-200 sm:text-xl">
           AI-Powered Lead Matching. Quality Projects. Instant Payments.
         </p>
 

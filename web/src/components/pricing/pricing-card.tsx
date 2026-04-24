@@ -34,10 +34,10 @@ export function PricingCard({
       )}
     >
       <CardHeader className="gap-1">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="text-xs font-medium uppercase tracking-wider text-slate-200">
           {title}
         </p>
-        <CardTitle className="text-2xl font-semibold tracking-tight">
+        <CardTitle className="text-2xl font-semibold tracking-tight text-slate-200">
           {priceLabel}
         </CardTitle>
         <CardDescription className="text-sm text-foreground/85">

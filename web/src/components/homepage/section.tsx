@@ -44,7 +44,7 @@ export function HomepageSection({
           ) : null}
           <h2
             id={id ? `${id}-heading` : undefined}
-            className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+            className="text-balance text-3xl font-semibold tracking-tight text-slate-200 sm:text-4xl"
           >
             {title}
           </h2>

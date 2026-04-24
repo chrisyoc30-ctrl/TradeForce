@@ -85,12 +85,12 @@ export function SocialProof() {
               key={name}
               className="rounded-xl border border-white/10 bg-zinc-950/40 p-5 sm:p-6"
             >
-              <blockquote className="text-sm leading-relaxed text-foreground/90 sm:text-base">
+              <blockquote className="text-sm leading-relaxed text-slate-100 sm:text-base">
                 &ldquo;{quote}&rdquo;
               </blockquote>
-              <footer className="mt-4 text-xs text-muted-foreground sm:text-sm">
-                <cite className="font-medium not-italic text-foreground">{name}</cite>
-                <span className="text-muted-foreground"> — {role}</span>
+              <footer className="mt-4 text-xs text-slate-100 sm:text-sm">
+                <cite className="font-medium not-italic text-slate-100">{name}</cite>
+                <span> — {role}</span>
               </footer>
             </li>
           ))}
