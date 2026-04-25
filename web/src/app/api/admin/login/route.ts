@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { getExpectedAdminSessionToken } from "@/lib/admin-auth";
 
 export async function POST(request: Request) {
-  const expected = getExpectedAdminSessionToken();
+  const expected = await getExpectedAdminSessionToken();
   if (!expected) {
     return NextResponse.json(
       { error: "ADMIN_PASSWORD is not set on the server" },
@@ -23,7 +23,8 @@ export async function POST(request: Request) {
   }
   const store = await cookies();
   const isProd = process.env.NODE_ENV === "production";
-  store.set("tradescore_admin_session", getExpectedAdminSessionToken()!, {
+  const token = await getExpectedAdminSessionToken();
+  store.set("tradescore_admin_session", token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
