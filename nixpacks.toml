@@ -1,0 +1,12 @@
+# Railway / Nixpacks: build from repo root (npm workspaces). Do not use `cd web && …`.
+# See: https://nixpacks.com/docs/configuration/file
+
+[variables]
+NODE_ENV = "production"
+
+[phases.build]
+dependsOn = ["install"]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
