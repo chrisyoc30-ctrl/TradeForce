@@ -9,6 +9,7 @@ describe("isLeadFormSubmittable", () => {
         name: "",
         phone: "1",
         projectType: "x",
+        location: "G1",
         description: "y",
       }),
     ).toBe(false);
@@ -20,6 +21,7 @@ describe("isLeadFormSubmittable", () => {
         name: "Alex",
         phone: "07123456789",
         projectType: "Plumbing",
+        location: "G1 1AA",
         description: "Leak under sink",
       }),
     ).toBe(true);
@@ -31,6 +33,7 @@ describe("isLeadFormSubmittable", () => {
         name: "Alex",
         phone: "07123456789",
         projectType: "Plumbing",
+        location: "G1",
         description: "   ",
       }),
     ).toBe(false);

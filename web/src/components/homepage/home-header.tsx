@@ -35,67 +35,25 @@ export function HomeHeader() {
           >
             FAQ
           </Link>
-          <Link
-            href="/terms"
-            className="shrink-0 transition-colors hover:text-foreground"
-          >
-            Terms
-          </Link>
-          <Link
-            href="/lead-capture"
-            className="shrink-0 transition-colors hover:text-foreground"
-          >
-            Post a job
-          </Link>
-          <Link
-            href="/homeowner-dashboard"
-            className="hidden shrink-0 transition-colors hover:text-foreground sm:inline"
-          >
-            My projects
-          </Link>
-          <Link
-            href="/tradesman-signup"
-            className="shrink-0 transition-colors hover:text-foreground"
-          >
-            For trades
-          </Link>
-          <Link
-            href="/lead-scoring"
-            className="hidden shrink-0 transition-colors hover:text-foreground sm:inline"
-          >
-            Browse leads
-          </Link>
-          <Link
-            href="/available-jobs"
-            className="hidden shrink-0 transition-colors hover:text-foreground md:inline"
-          >
-            Available jobs
-          </Link>
-          <Link
-            href="/admin/analytics"
-            className="hidden shrink-0 text-muted-foreground/80 transition-colors hover:text-foreground lg:inline"
-          >
-            Admin
-          </Link>
         </nav>
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/lead-capture"
             className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "hidden sm:inline-flex"
-            )}
-          >
-            Homeowners
-          </Link>
-          <Link
-            href="/tradesman-signup"
-            className={cn(
               buttonVariants({ size: "sm" }),
               "border-0 bg-[#FF6B35] text-white hover:bg-[#e85f2d]"
             )}
           >
-            Trades
+            Post a job
+          </Link>
+          <Link
+            href="/tradesman-signup"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "border-white/20"
+            )}
+          >
+            For tradespeople
           </Link>
         </div>
       </div>

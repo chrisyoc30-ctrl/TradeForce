@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive test script for TradeForce Flask API
+Comprehensive test script for the TradeScore Flask API
 Tests all endpoints in logical order
 """
 

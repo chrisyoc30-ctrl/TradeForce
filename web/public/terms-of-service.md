@@ -5,11 +5,7 @@
 
 ---
 
-## Important notice (please read)
-
 These Terms of Service (“**Terms**”) govern your use of the TradeScore website, applications, and related services (together, the “**Service**”) operated by TradeScore (“**we**”, “**us**”, “**our**”). By accessing or using the Service, you agree to these Terms.
-
-**This document is a template for discussion and implementation only. It is not legal advice.** Laws vary by jurisdiction, and your situation may require different wording. **You should have a qualified lawyer review these Terms (and your Privacy Policy) before you launch or rely on them.**
 
 If you do not agree to these Terms, do not use the Service.
 
@@ -211,7 +207,7 @@ We may investigate and cooperate with authorities where required.
 
 18.2. **Courts.** Subject to the arbitration paragraph below, the courts of **Scotland** will have exclusive jurisdiction, except that **consumers** may have rights to bring claims in their home jurisdiction where law requires.
 
-18.3. **Arbitration (template — requires legal review).** For **business users** and **tradespeople acting in a business capacity**, the parties agree that **any dispute** arising out of these Terms or the Service will be resolved by **binding arbitration** under the rules of a recognised arbitration body in the United Kingdom, **except** where law prohibits arbitration of certain claims. **Consumers** may have **non-waivable rights** to bring claims in court — this clause may not apply to you.
+18.3. **Arbitration.** For **business users** and **tradespeople acting in a business capacity**, the parties agree that **any dispute** arising out of these Terms or the Service will be resolved by **binding arbitration** under the rules of a recognised arbitration body in the United Kingdom, **except** where law prohibits arbitration of certain claims. **Consumers** may have **non-waivable rights** to bring claims in court — this clause may not apply to you.
 
 18.4. **Informal step first.** Before commencing arbitration or litigation (where permitted), the parties agree to attempt **good-faith negotiation** for **30 days** after written notice to **[hello@tradescore.uk](mailto:hello@tradescore.uk)**.
 
@@ -236,8 +232,8 @@ We may investigate and cooperate with authorities where required.
 Questions about these Terms:
 
 - **Email:** [hello@tradescore.uk](mailto:hello@tradescore.uk)  
-- **Post:** TradeScore, Glasgow, United Kingdom *(update with registered address)*
+- **Post:** TradeScore, Glasgow, Scotland, United Kingdom
 
 ---
 
-*End of Terms of Service (template v1.0)*
+*End of Terms of Service*

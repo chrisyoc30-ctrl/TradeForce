@@ -1,9 +1,9 @@
 import { LeadCapture } from "@/components/lead-capture/LeadCapture";
 
 export const metadata = {
-  title: "Post a job | TradeScore",
+  title: "Post a job",
   description:
-    "Submit a job for free and get priority-matched to tradespeople (AI-scored).",
+    "Post your trade job for free. AI-matched tradespeople in Glasgow will contact you. No fees for homeowners.",
 };
 
 export default function LeadCapturePage() {

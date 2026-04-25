@@ -16,9 +16,12 @@ export type SegmentedTabItem = {
 
 type SegmentedTabsProps = {
   items: SegmentedTabItem[];
-  defaultValue: string;
+  /** Use for uncontrolled tabs (omit `value` / `onValueChange`). */
+  defaultValue?: string;
   className?: string;
   listClassName?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
 };
 
 /**
@@ -30,10 +33,17 @@ export function SegmentedTabs({
   defaultValue,
   className,
   listClassName,
+  value,
+  onValueChange,
 }: SegmentedTabsProps) {
   const count = items.length;
   return (
-    <Tabs defaultValue={defaultValue} className={cn("w-full gap-6", className)}>
+    <Tabs
+      className={cn("w-full gap-6", className)}
+      {...(value !== undefined
+        ? { value, onValueChange }
+        : { defaultValue: defaultValue ?? items[0]?.value ?? "" })}
+    >
       <TabsList
         variant="default"
         className={cn(

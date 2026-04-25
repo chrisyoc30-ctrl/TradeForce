@@ -40,8 +40,8 @@ export const bidsRouter = createTRPCRouter({
         leadId: z.string().min(1),
         amount: z.number(),
         description: z.string().min(1),
-        tradesmanId: z.string().min(1),
-        tradesmanName: z.string().optional(),
+        bidderName: z.string().min(1),
+        bidderPhone: z.string().min(5),
       })
     )
     .mutation(async ({ input }) => {
@@ -55,8 +55,8 @@ export const bidsRouter = createTRPCRouter({
             leadId: input.leadId,
             amount: input.amount,
             description: input.description,
-            tradesmanId: input.tradesmanId,
-            tradesmanName: input.tradesmanName,
+            bidderName: input.bidderName,
+            bidderPhone: input.bidderPhone,
           }),
         }
       );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { trpc } from "@/trpc/react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function AdminAnalyticsPage() {
+  const router = useRouter();
   const [secret, setSecret] = useState("");
   const q = trpc.admin.getMetrics.useQuery(
     { adminSecret: secret || undefined },
@@ -34,6 +36,19 @@ export default function AdminAnalyticsPage() {
             <code className="rounded bg-muted px-1 text-xs">ADMIN_SECRET</code>{" "}
             is set on the API, enter the same value below.
           </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={async () => {
+              await fetch("/api/admin/logout", { method: "POST" });
+              router.push("/admin/login");
+              router.refresh();
+            }}
+          >
+            Log out
+          </Button>
         </div>
 
         <Card>

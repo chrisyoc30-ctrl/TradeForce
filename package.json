@@ -1,5 +1,5 @@
 {
-  "name": "tradeforce",
+  "name": "tradescore",
   "private": true,
   "workspaces": ["web"],
   "scripts": {

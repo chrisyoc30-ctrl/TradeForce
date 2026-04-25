@@ -21,6 +21,11 @@ export function projectTypeLabel(lead: Lead): string {
   return (lead.projectType as string) || (lead.service as string) || "Project";
 }
 
+export function locationLabel(lead: Lead): string {
+  const s = (lead.location as string | undefined)?.trim();
+  return s || "—";
+}
+
 export function descriptionExcerpt(lead: Lead, max = 100): string {
   const d = (lead.description as string) || "";
   if (d.length <= max) return d;

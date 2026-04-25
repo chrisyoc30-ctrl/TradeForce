@@ -33,6 +33,11 @@ export const leadCaptureFormSchema = z.object({
     .trim()
     .min(1, "Please select a project type")
     .max(120),
+  location: z
+    .string()
+    .trim()
+    .min(2, "Enter your postcode or area")
+    .max(80),
   description: z
     .string()
     .trim()

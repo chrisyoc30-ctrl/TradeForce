@@ -77,8 +77,7 @@ export default async function TermsPage() {
               >
                 hello@tradescore.uk
               </a>{" "}
-              for clarifications. This document is a template — have it reviewed
-              by a lawyer before launch.
+              for clarifications.
             </p>
           </div>
         </aside>

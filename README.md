@@ -1,4 +1,4 @@
-# TradeForce Backend
+# TradeScore (Flask API)
 
 Minimal Flask API for lead ingestion and retrieval.
 

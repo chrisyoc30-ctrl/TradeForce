@@ -23,12 +23,14 @@ import {
   budgetLabel,
   defaultMatchConfidence,
   descriptionExcerpt,
+  locationLabel,
   parseBudgetNumber,
   projectTypeLabel,
   timelineLabel,
   urgencyScore,
 } from "@/components/leads/lead-helpers";
 import { LeadDetailDialog } from "@/components/leads/lead-detail-dialog";
+import { NotifyMeInline } from "@/components/leads/notify-me-inline";
 import { pricingCopy } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
@@ -173,10 +175,18 @@ export function LeadScoringBoard() {
         )}
 
         {!isLoading && leads.length === 0 && !isError && (
-          <div className="rounded-lg border border-dashed border-border/80 bg-muted/10 px-6 py-12 text-center text-muted-foreground">
-            <p className="text-base font-medium text-foreground/90">
-              No leads available right now. Check back soon!
-            </p>
+          <div className="space-y-6">
+            <div className="rounded-lg border border-dashed border-border/80 bg-muted/10 px-6 py-10">
+              <h2 className="text-lg font-semibold text-foreground">
+                No leads in your area yet
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                We&apos;re onboarding tradespeople across Glasgow now. Drop your
+                details and we&apos;ll notify you the moment a matching lead
+                comes in.
+              </p>
+            </div>
+            <NotifyMeInline />
           </div>
         )}
 
@@ -213,6 +223,9 @@ export function LeadScoringBoard() {
                     <CardContent className="flex-1 space-y-3 pb-3">
                       <p className="text-sm font-medium text-foreground">
                         {projectTypeLabel(lead)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {locationLabel(lead)}
                       </p>
                       <p className="line-clamp-3 text-sm text-muted-foreground">
                         {descriptionExcerpt(lead)}

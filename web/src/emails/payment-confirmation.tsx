@@ -15,6 +15,10 @@ export type PaymentConfirmationEmailProps = {
   amountFormatted: string;
   leadReference: string;
   projectSummary?: string;
+  /** Homeowner or contact name (from lead) when we have it. */
+  homeownerName?: string;
+  /** Short project title, e.g. project type. */
+  leadTitle?: string;
   dashboardUrl: string;
 };
 
@@ -23,19 +27,47 @@ export function PaymentConfirmationEmail({
   amountFormatted,
   leadReference,
   projectSummary,
+  homeownerName,
+  leadTitle,
   dashboardUrl,
 }: PaymentConfirmationEmailProps) {
   const name = recipientName.trim() || "there";
+  const hasMatchCopy = Boolean(
+    (homeownerName && homeownerName.trim()) || (leadTitle && leadTitle.trim())
+  );
+  const preview = `Payment of ${amountFormatted} received — lead accepted on TradeScore.`;
 
   return (
-    <TradeScoreLayout
-      preview={`Payment of ${amountFormatted} received — lead accepted on TradeScore.`}
-    >
+    <TradeScoreLayout preview={preview}>
       <EmailHeading>Payment received</EmailHeading>
       <EmailLead>
         Hi {name}, we’ve successfully received your payment of{" "}
         <strong>{amountFormatted}</strong>. Your lead is confirmed.
       </EmailLead>
+      {hasMatchCopy ? (
+        <Text
+          style={{
+            fontSize: "15px",
+            lineHeight: "24px",
+            color: EMAIL_BRAND.muted,
+            margin: "0 0 16px 0",
+          }}
+        >
+          {homeownerName && homeownerName.trim() ? (
+            <>
+              You&apos;re now matched with{" "}
+              <strong style={{ color: EMAIL_BRAND.text }}>
+                {homeownerName.trim()}
+              </strong>
+              {leadTitle && leadTitle.trim() ? (
+                <> for: {leadTitle.trim()}</>
+              ) : null}
+            </>
+          ) : leadTitle && leadTitle.trim() ? (
+            <>Project: {leadTitle.trim()}</>
+          ) : null}
+        </Text>
+      ) : null}
       <Section
         style={{
           backgroundColor: EMAIL_BRAND.pageBg,

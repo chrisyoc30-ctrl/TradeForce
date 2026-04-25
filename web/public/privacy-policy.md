@@ -1,13 +1,9 @@
-**Version:** 1.0 (template)  
+**Version:** 1.0  
 **Last updated:** 23 April 2026  
 
 ---
 
-## Important notice
-
 This Privacy Policy explains how **TradeScore** (“**we**”, “**us**”, “**our**”) collects, uses, stores, and shares personal data when you use our website, applications, and related services (together, the “**Service**”).
-
-**This document is a template for information purposes only and is not legal advice.** Laws vary by jurisdiction and your exact obligations depend on how you operate. You should have a qualified lawyer review this Policy (and your data processing activities) before you rely on it or go live.
 
 For contractual terms, see our [Terms of Service](/terms).
 
@@ -215,7 +211,7 @@ Continued use of the Service after the effective date of changes may constitute 
 For **privacy questions**, **data subject requests**, or concerns about this Policy:
 
 - **Email:** [hello@tradescore.uk](mailto:hello@tradescore.uk)  
-- **Postal address:** *(add your registered business address)*  
+- **Postal address:** TradeScore, Glasgow, Scotland, United Kingdom  
 
 Please include enough detail for us to identify your account or request (for example the email you used to register) and describe what you would like us to do.
 

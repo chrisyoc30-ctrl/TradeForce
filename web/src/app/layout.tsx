@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { AIChatBox } from "@/components/AIChatBox";
+import { CookieGtagInit } from "@/components/cookie-gtag-init";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TRPCProvider } from "@/trpc/react";
 
@@ -17,12 +18,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://tradescore.uk"
+  ),
   title: {
     default: "TradeScore",
-    template: "%s | TradeScore",
+    template: "TradeScore | %s",
   },
   description:
-    "TradeScore connects Glasgow homeowners with verified trades. AI lead matching, transparent pricing, secure payments.",
+    "TradeScore connects Glasgow homeowners with verified local tradespeople. Post a job free — trades pay £25 per lead, no commission.",
+  openGraph: {
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -39,6 +46,7 @@ export default function RootLayout({
           <TooltipProvider delay={0}>
             {children}
             <AIChatBox />
+            <CookieGtagInit />
           </TooltipProvider>
         </TRPCProvider>
       </body>

@@ -10,6 +10,8 @@ export interface Lead {
   projectType?: string;
   service?: string;
   description?: string;
+  /** Postcode or area (Glasgow). */
+  location?: string;
   budget?: number | string;
   timeline?: string;
   aiScore?: number;
@@ -46,8 +48,11 @@ export interface MatchedTradesman {
 export interface Bid {
   id: string;
   leadId: string;
-  tradesmanId: string;
+  /** @deprecated legacy; prefer bidderName / bidderPhone */
+  tradesmanId?: string;
   tradesmanName?: string;
+  bidderName?: string;
+  bidderPhone?: string;
   amount: number;
   description: string;
   status: string;

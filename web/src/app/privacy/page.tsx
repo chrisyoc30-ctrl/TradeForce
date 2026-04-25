@@ -13,7 +13,9 @@ export const metadata: Metadata = {
     "TradeScore Privacy Policy: what we collect (contact, trade type, project details, payments), GDPR rights, Stripe & MongoDB, cookies, retention, and how to contact us.",
   robots: { index: true, follow: true },
   openGraph: {
-    title: "Privacy Policy | TradeScore",
+    title: "TradeScore | Privacy Policy",
+    description:
+      "TradeScore Privacy Policy: what we collect, GDPR rights, cookies, and how to contact us.",
     url: `${siteUrl}/privacy`,
     siteName: "TradeScore",
     type: "article",
@@ -39,7 +41,7 @@ export default async function PrivacyPage() {
               Privacy Policy
             </h1>
             <p className="mt-3 text-sm text-muted-foreground">
-              Template <strong className="text-foreground">v1.0</strong> · Last
+              Version <strong className="text-foreground">1.0</strong> · Last
               updated <time dateTime="2026-04-23">23 April 2026</time>. See also{" "}
               <a
                 href="/terms"

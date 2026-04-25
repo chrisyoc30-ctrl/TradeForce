@@ -10,7 +10,7 @@ export const pricingCopy = {
     summary: "Always FREE to submit projects.",
     points: [
       "Post jobs and describe your project at no cost",
-      "No subscription — homeowners never pay TradeForce to list work",
+      "No subscription — homeowners never pay TradeScore to list work",
     ] as const,
   },
 

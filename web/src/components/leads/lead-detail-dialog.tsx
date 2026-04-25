@@ -13,6 +13,7 @@ import { gradeClass, fraudStyles } from "@/lib/grade-styles";
 import {
   budgetLabel,
   defaultMatchConfidence,
+  locationLabel,
   projectTypeLabel,
   timelineLabel,
 } from "@/components/leads/lead-helpers";
@@ -59,6 +60,10 @@ export function LeadDetailDialog({
             {String(lead.description ?? "—")}
           </p>
           <div className="grid gap-2 text-muted-foreground">
+            <p>
+              <span className="text-foreground/80">Location: </span>
+              {locationLabel(lead)}
+            </p>
             <p>
               <span className="text-foreground/80">Budget: </span>
               {budgetLabel(lead)}

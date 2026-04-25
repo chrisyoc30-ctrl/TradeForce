@@ -1,13 +1,19 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { PricingCard } from "@/components/pricing/pricing-card";
+import { TradesmanSignupForm } from "@/components/tradesman/tradesman-signup-form";
 import { pricingCopy } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
-  title: "Trades — get started | TradeScore",
+  title: "Trades — join",
   description:
-    "£25 per lead after your first free lead. No commission, no monthly subscription.",
+    "Join TradeScore as a Glasgow tradesperson. Get quality leads for £25 each — first lead free. No commission on your work.",
+  openGraph: {
+    title: "TradeScore | Trades — join",
+    description:
+      "Join TradeScore as a Glasgow tradesperson. Get quality leads for £25 each — first lead free. No commission on your work.",
+  },
 };
 
 export default function TradesmanSignupPage() {
@@ -32,6 +38,15 @@ export default function TradesmanSignupPage() {
         points={pricingCopy.trades.points}
         emphasize
       />
+
+      <section className="space-y-4 rounded-xl border border-border/60 bg-card/20 p-6">
+        <h2 className="text-lg font-semibold">Register for early access</h2>
+        <p className="text-sm text-muted-foreground">
+          Tell us about your business — we&apos;ll match you to homeowners in
+          Glasgow.
+        </p>
+        <TradesmanSignupForm />
+      </section>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Link

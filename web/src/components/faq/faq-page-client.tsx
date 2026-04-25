@@ -46,8 +46,13 @@ function FaqList({ items }: { items: FaqItem[] }) {
   );
 }
 
-export function FaqPageClient() {
+export function FaqPageClient({
+  defaultTab = "homeowners",
+}: {
+  defaultTab?: "homeowners" | "tradesmen";
+}) {
   const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<"homeowners" | "tradesmen">(defaultTab);
 
   const homeowners = useMemo(
     () => filterFaqs(homeownerFaqs, query),
@@ -77,7 +82,8 @@ export function FaqPageClient() {
       </div>
 
       <SegmentedTabs
-        defaultValue="homeowners"
+        value={tab}
+        onValueChange={(v) => setTab(v as "homeowners" | "tradesmen")}
         listClassName="border border-white/10 bg-zinc-900/50"
         items={[
           {

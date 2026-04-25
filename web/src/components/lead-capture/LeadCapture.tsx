@@ -7,18 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { QuoteEstimator } from "@/components/leads/quote-estimator";
 import { LeadSubmissionSuccessDialog } from "@/components/lead-capture/lead-submission-success-dialog";
 import { trpc } from "@/trpc/react";
 import { trackLeadSubmitted } from "@/lib/analytics";
 import { isLeadFormSubmittable } from "@/lib/lead-form-submittable";
+import { leadCaptureFormSchema } from "@/lib/schemas/lead-capture";
 import {
   type ProjectComplexity,
   type ScoreBreakdown,
@@ -33,14 +27,33 @@ const defaultBreakdown: ScoreBreakdown = {
   timeline: 50,
 };
 
+const PROJECT_TYPE_OPTIONS: readonly { value: string; label: string }[] = [
+  { value: "", label: "Select project type" },
+  { value: "Plumbing", label: "Plumbing" },
+  { value: "Electrical", label: "Electrical" },
+  { value: "Heating & gas", label: "Heating & gas" },
+  { value: "Bathroom or kitchen", label: "Bathroom or kitchen" },
+  { value: "Roofing", label: "Roofing" },
+  { value: "Joinery / carpentry", label: "Joinery / carpentry" },
+  { value: "General building", label: "General building" },
+  { value: "Other", label: "Other" },
+] as const;
+
+const selectClassName =
+  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors " +
+  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 " +
+  "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 " +
+  "md:text-sm";
+
 const emptyForm = {
   name: "",
   phone: "",
   email: "",
   projectType: "",
+  location: "",
   description: "",
   budget: "",
-  timeline: "flexible",
+  timeline: "flexible" as "this week" | "this month" | "flexible",
   projectComplexity: "simple" as ProjectComplexity,
 };
 
@@ -53,6 +66,7 @@ export function LeadCapture() {
     breakdown: ScoreBreakdown;
   } | null>(null);
   const [open, setOpen] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
 
   const create = trpc.leads.create.useMutation();
 
@@ -85,17 +99,43 @@ export function LeadCapture() {
         onSubmit={(e) => {
           e.preventDefault();
           if (!canSubmit) return;
+          setFieldErrors({});
           const min = estimate.min;
           const max = estimate.max;
-          const payload = {
-            name: f.name.trim(),
-            phone: f.phone.trim(),
-            email: f.email.trim() || undefined,
-            projectType: f.projectType.trim(),
-            description: f.description.trim(),
-            budget: f.budget || undefined,
+          const parsed = leadCaptureFormSchema.safeParse({
+            name: f.name,
+            phone: f.phone,
+            email: f.email,
+            projectType: f.projectType,
+            location: f.location,
+            description: f.description,
+            budget: f.budget,
             timeline: f.timeline,
             projectComplexity: f.projectComplexity,
+          });
+          if (!parsed.success) {
+            const flat = parsed.error.flatten();
+            const fe: Partial<Record<string, string>> = {};
+            for (const [k, v] of Object.entries(flat.fieldErrors)) {
+              if (v?.[0]) fe[k] = v[0];
+            }
+            if (Object.keys(fe).length === 0 && flat.formErrors[0]) {
+              fe._form = flat.formErrors[0];
+            }
+            setFieldErrors(fe);
+            return;
+          }
+          const v = parsed.data;
+          const payload = {
+            name: v.name,
+            phone: v.phone,
+            email: v.email,
+            projectType: v.projectType,
+            location: v.location,
+            description: v.description,
+            budget: v.budget || undefined,
+            timeline: v.timeline,
+            projectComplexity: v.projectComplexity,
             estimatedQuoteMin: min,
             estimatedQuoteMax: max,
           };
@@ -127,7 +167,14 @@ export function LeadCapture() {
             onValueChange={(value) => setF((s) => ({ ...s, name: value }))}
             autoComplete="name"
             required
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-describedby={fieldErrors.name ? "name-error" : undefined}
           />
+          {fieldErrors.name ? (
+            <p id="name-error" className="text-sm text-destructive" role="alert">
+              {fieldErrors.name}
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
           <div className="grid gap-2">
@@ -139,7 +186,14 @@ export function LeadCapture() {
               autoComplete="tel"
               inputMode="tel"
               required
+              aria-invalid={Boolean(fieldErrors.phone)}
+              aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
             />
+            {fieldErrors.phone ? (
+              <p id="phone-error" className="text-sm text-destructive" role="alert">
+                {fieldErrors.phone}
+              </p>
+            ) : null}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
@@ -149,21 +203,61 @@ export function LeadCapture() {
               value={f.email}
               onValueChange={(value) => setF((s) => ({ ...s, email: value }))}
               autoComplete="email"
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? "email-error" : undefined}
             />
+            {fieldErrors.email ? (
+              <p id="email-error" className="text-sm text-destructive" role="alert">
+                {fieldErrors.email}
+              </p>
+            ) : null}
           </div>
         </div>
 
         <div className="grid gap-2">
           <Label htmlFor="projectType">Project type *</Label>
-          <Input
+          <select
             id="projectType"
-            value={f.projectType}
-            onValueChange={(value) =>
-              setF((s) => ({ ...s, projectType: value }))
-            }
-            placeholder="e.g. Plumbing, Electrical"
+            name="projectType"
             required
+            value={f.projectType}
+            onChange={(e) =>
+              setF((s) => ({ ...s, projectType: e.currentTarget.value }))
+            }
+            className={selectClassName}
+            aria-invalid={Boolean(fieldErrors.projectType)}
+            aria-describedby={fieldErrors.projectType ? "projectType-error" : undefined}
+          >
+            {PROJECT_TYPE_OPTIONS.map(({ value, label }) => (
+              <option key={label + value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {fieldErrors.projectType ? (
+            <p id="projectType-error" className="text-sm text-destructive" role="alert">
+              {fieldErrors.projectType}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="location">Your postcode or area *</Label>
+          <Input
+            id="location"
+            value={f.location}
+            onValueChange={(value) => setF((s) => ({ ...s, location: value }))}
+            placeholder="e.g. G1 1AA or West End"
+            required
+            autoComplete="street-address"
+            aria-invalid={Boolean(fieldErrors.location)}
+            aria-describedby={fieldErrors.location ? "location-error" : undefined}
           />
+          {fieldErrors.location ? (
+            <p id="location-error" className="text-sm text-destructive" role="alert">
+              {fieldErrors.location}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-2">
@@ -177,7 +271,18 @@ export function LeadCapture() {
             className="min-h-[120px] resize-y"
             placeholder="What needs doing, access, materials…"
             required
+            aria-invalid={Boolean(fieldErrors.description)}
+            aria-describedby={fieldErrors.description ? "description-error" : undefined}
           />
+          {fieldErrors.description ? (
+            <p
+              id="description-error"
+              className="text-sm text-destructive"
+              role="alert"
+            >
+              {fieldErrors.description}
+            </p>
+          ) : null}
         </div>
 
         <QuoteEstimator
@@ -200,56 +305,56 @@ export function LeadCapture() {
             />
           </div>
           <div className="grid gap-2">
-            <span id="complexity-label" className="text-sm font-medium">
+            <Label htmlFor="projectComplexity" className="text-sm font-medium">
               Project complexity
-            </span>
-            <Select
+            </Label>
+            <select
+              id="projectComplexity"
+              name="projectComplexity"
               value={f.projectComplexity}
-              onValueChange={(v) =>
-                setF((s) => ({
-                  ...s,
-                  projectComplexity: (v ?? "simple") as ProjectComplexity,
-                }))
-              }
+              onChange={(e) => {
+                const v = e.currentTarget.value as ProjectComplexity;
+                setF((s) => ({ ...s, projectComplexity: v }));
+              }}
+              className={selectClassName}
             >
-              <SelectTrigger className="w-full" aria-labelledby="complexity-label">
-                <SelectValue placeholder="Complexity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="simple">Simple (1×)</SelectItem>
-                <SelectItem value="medium">Medium (1.5×)</SelectItem>
-                <SelectItem value="complex">Complex (2×)</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="simple">Simple (1×)</option>
+              <option value="medium">Medium (1.5×)</option>
+              <option value="complex">Complex (2×)</option>
+            </select>
           </div>
         </div>
 
         <div className="grid gap-2">
-          <span id="timeline-label" className="text-sm font-medium">
+          <Label htmlFor="timeline" className="text-sm font-medium">
             Timeline
-          </span>
-          <Select
+          </Label>
+          <select
+            id="timeline"
+            name="timeline"
             value={f.timeline}
-            onValueChange={(v) =>
-              setF((s) => ({ ...s, timeline: v ?? "flexible" }))
-            }
+            onChange={(e) => {
+              const v = e.currentTarget
+                .value as (typeof f)["timeline"];
+              setF((s) => ({ ...s, timeline: v }));
+            }}
+            className={selectClassName}
           >
-            <SelectTrigger
-              className="w-full"
-              aria-labelledby="timeline-label"
-            >
-              <SelectValue placeholder="When do you need it?" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this week">This week</SelectItem>
-              <SelectItem value="this month">This month</SelectItem>
-              <SelectItem value="flexible">Flexible</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="this week">This week</option>
+            <option value="this month">This month</option>
+            <option value="flexible">Flexible</option>
+          </select>
         </div>
 
+        {fieldErrors._form ? (
+          <p className="text-sm text-destructive" role="alert">
+            {fieldErrors._form}
+          </p>
+        ) : null}
         {create.error && (
-          <p className="text-sm text-destructive">{create.error.message}</p>
+          <p className="text-sm text-destructive" role="alert">
+            {create.error.message}
+          </p>
         )}
 
         <Button

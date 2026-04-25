@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     absolute: "TradeScore | Stop Competing With 10 Other Glasgow Trades",
   },
   description:
-    "AI-powered lead matching for Glasgow. Homeowners post free. Trades get quality leads — £25 per lead, first one free. No commission. Secure payments.",
+    "TradeScore connects Glasgow homeowners with verified local tradespeople. Post a job free — trades pay £25 per lead, no commission.",
   keywords: [
     "Glasgow trades",
     "lead matching",

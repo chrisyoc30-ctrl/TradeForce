@@ -27,6 +27,10 @@ export default function HomeownerDashboardPage() {
         Look up jobs you submitted with the same phone number you used on the
         form.
       </p>
+      <p className="rounded-md border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+        For your security, only jobs submitted with this phone number are
+        shown. We recommend not sharing this page with others.
+      </p>
 
       <div className="space-y-3">
         <div className="grid gap-2">

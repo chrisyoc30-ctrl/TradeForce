@@ -96,6 +96,11 @@ export function LeadSubmissionSuccessDialog({
             Your Job is {aiGrade.toUpperCase()} Priority!
           </DialogTitle>
         </DialogHeader>
+        <p className="text-balance text-center text-sm text-foreground/90">
+          Your job has been posted. We&apos;ll match it to relevant tradespeople
+          in Glasgow — you should hear from them within 24 hours. Check your
+          phone for quotes.
+        </p>
         <p className="text-center text-sm text-muted-foreground">
           Quality Score: {aiScore}/100
         </p>

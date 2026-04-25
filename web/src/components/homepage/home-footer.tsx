@@ -8,7 +8,7 @@ export function HomeFooter() {
     >
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 sm:flex-row">
         <p className="text-center text-sm text-muted-foreground sm:text-left">
-          © {new Date().getFullYear()} TradeScore · Glasgow ·{" "}
+          © 2026 TradeScore · Glasgow ·{" "}
           <span className="text-foreground/80">AI-matched leads for real work</span>
         </p>
         <nav
@@ -30,20 +30,8 @@ export function HomeFooter() {
           <Link href="/lead-capture" className="hover:text-foreground">
             Post a job
           </Link>
-          <Link href="/homeowner-dashboard" className="hover:text-foreground">
-            My projects
-          </Link>
           <Link href="/tradesman-signup" className="hover:text-foreground">
-            For trades
-          </Link>
-          <Link href="/lead-scoring" className="hover:text-foreground">
-            Browse leads
-          </Link>
-          <Link href="/available-jobs" className="hover:text-foreground">
-            Available jobs
-          </Link>
-          <Link href="/admin/analytics" className="hover:text-foreground">
-            Admin analytics
+            For tradespeople
           </Link>
         </nav>
       </div>

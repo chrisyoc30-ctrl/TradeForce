@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
@@ -14,11 +14,13 @@ import {
   projectTypeLabel,
   timelineLabel,
 } from "@/components/leads/lead-helpers";
+import { BidForm } from "@/components/BidForm";
 import { LeadAcceptPayment } from "@/components/leads/lead-accept-payment";
 import { cn } from "@/lib/utils";
 
 export default function LeadDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const leadId = typeof params.leadId === "string" ? params.leadId : "";
 
   const utils = trpc.useUtils();
@@ -127,6 +129,19 @@ export default function LeadDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        <section className="border-t border-border/80 pt-8">
+          <h2 className="mb-6 text-2xl font-bold tracking-tight">Submit your bid</h2>
+          <BidForm
+            leadId={lead.id}
+            leadBudget={lead.budget}
+            onSuccess={() => {
+              void utils.bids.getForLead.invalidate({ leadId });
+              void utils.leads.getById.invalidate({ id: leadId });
+              router.refresh();
+            }}
+          />
+        </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Matched tradespeople</h2>

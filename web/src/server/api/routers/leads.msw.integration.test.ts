@@ -31,6 +31,7 @@ describe("leads.create (MSW)", () => {
     const res = await caller.leads.create({
       name: "Alex",
       phone: "07123456789",
+      location: "G41",
       projectType: "Electrical",
       description: "New sockets",
     });

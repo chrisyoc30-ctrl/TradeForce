@@ -10,7 +10,7 @@ const siteUrl = "https://tradescore.uk";
 export const metadata: Metadata = {
   title: "FAQ",
   description:
-    "TradeScore FAQs for homeowners and tradesmen: how matching works, pricing (£25 per lead for trades, free for homeowners), payments, security, and disputes.",
+    "Answers to common questions about TradeScore — how lead matching works, costs, verification, and payments.",
   keywords: [
     "TradeScore FAQ",
     "Glasgow trades",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     "verified trades",
   ],
   openGraph: {
-    title: "FAQ | TradeScore",
+    title: "TradeScore | FAQ",
     description:
       "Answers for homeowners and trades: costs, verification, payments, and how AI matching works.",
     url: `${siteUrl}/faq`,
@@ -37,7 +37,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FaqPage() {
+export default async function FaqPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const sp = await searchParams;
+  const defaultTab = sp.tab === "trades" ? "tradesmen" : "homeowners";
   return (
     <>
       <FaqJsonLd />
@@ -58,7 +64,7 @@ export default function FaqPage() {
               </p>
             </div>
           </header>
-          <FaqPageClient />
+          <FaqPageClient defaultTab={defaultTab} />
         </main>
         <HomeFooter />
       </div>

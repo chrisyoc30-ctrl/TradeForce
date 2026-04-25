@@ -19,24 +19,19 @@ import {
 } from "@/components/leads/lead-helpers";
 import { cn } from "@/lib/utils";
 
-const ID_KEY = "tradescore-tradesman-id";
+const PHONE_KEY = "tradescore-tradesman-phone";
 const NAME_KEY = "tradescore-tradesman-name";
 
 export default function AvailableJobsPage() {
-  const [tradesmanId, setTradesmanId] = useState("");
-  const [tradesmanName, setTradesmanName] = useState("");
+  const [bidderName, setBidderName] = useState("");
+  const [bidderPhone, setBidderPhone] = useState("");
   const [amountByLead, setAmountByLead] = useState<Record<string, string>>({});
   const [noteByLead, setNoteByLead] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    let id = window.localStorage.getItem(ID_KEY);
-    if (!id) {
-      id = crypto.randomUUID();
-      window.localStorage.setItem(ID_KEY, id);
-    }
-    setTradesmanId(id);
-    setTradesmanName(window.localStorage.getItem(NAME_KEY) ?? "");
+    setBidderName(window.localStorage.getItem(NAME_KEY) ?? "");
+    setBidderPhone(window.localStorage.getItem(PHONE_KEY) ?? "");
   }, []);
 
   const utils = trpc.useUtils();
@@ -60,10 +55,12 @@ export default function AvailableJobsPage() {
     [projects]
   );
 
-  function persistName(name: string) {
-    setTradesmanName(name);
+  function persist(name: string, phone: string) {
+    setBidderName(name);
+    setBidderPhone(phone);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(NAME_KEY, name);
+      window.localStorage.setItem(PHONE_KEY, phone);
     }
   }
 
@@ -93,14 +90,20 @@ export default function AvailableJobsPage() {
                 <Label htmlFor="tm-name">Your name (shown to homeowner)</Label>
                 <Input
                   id="tm-name"
-                  value={tradesmanName}
-                  onChange={(e) => persistName(e.target.value)}
+                  value={bidderName}
+                  onChange={(e) => persist(e.target.value, bidderPhone)}
                   placeholder="e.g. Jamie McAllister"
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Your tradesperson ID</Label>
-                <Input readOnly value={tradesmanId} className="font-mono text-xs" />
+                <Label htmlFor="tm-phone">Your phone number</Label>
+                <Input
+                  id="tm-phone"
+                  value={bidderPhone}
+                  onChange={(e) => persist(bidderName, e.target.value)}
+                  placeholder="e.g. 07700 900000"
+                  inputMode="tel"
+                />
               </div>
             </div>
           </CardContent>
@@ -208,8 +211,8 @@ export default function AvailableJobsPage() {
                       type="button"
                       disabled={
                         submitBid.isPending ||
-                        !tradesmanId ||
-                        !tradesmanName.trim()
+                        bidderPhone.trim().length < 5 ||
+                        !bidderName.trim()
                       }
                       onClick={() => {
                         const n = parseFloat(amt);
@@ -218,8 +221,8 @@ export default function AvailableJobsPage() {
                           leadId: lid,
                           amount: n,
                           description: note,
-                          tradesmanId,
-                          tradesmanName: tradesmanName.trim(),
+                          bidderName: bidderName.trim(),
+                          bidderPhone: bidderPhone.trim(),
                         });
                       }}
                     >

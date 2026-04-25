@@ -36,6 +36,13 @@ Optional: **OpenAI** API key if you want the chat widget in production.
 
 **CORS:** `app.py` allows browser calls from your Vercel origin via Flask-CORS on `/api/*`. If you lock CORS to specific origins later, add your Vercel URL.
 
+### Railway (Next.js) — if the web app is deployed on Railway (not Vercel)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `API_URL` | **Yes** | Public **https** base URL of the Flask service (**no trailing slash**). Server-side tRPC uses this; without it, the app falls back to `http://127.0.0.1:5000` and lead submission fails. The app also errors early when `RAILWAY_ENVIRONMENT` is set and `API_URL` is missing. |
+| `NEXT_PUBLIC_API_URL` | **Recommended** | Use the same value as `API_URL` if the browser should call Flask directly. |
+
 ### Vercel (Next.js — project root = `web/`)
 
 | Variable | Required | Description |
@@ -116,10 +123,11 @@ OPENAI_API_KEY=sk-...
 
 ```bash
 curl -sS https://YOUR-RAILWAY-URL/health
+curl -sS https://YOUR-RAILWAY-URL/api/health
 curl -sS https://YOUR-RAILWAY-URL/api/leads/unmatched
 ```
 
-Expect JSON, not HTML errors.
+Expect JSON, not HTML errors. (`/health` and `/api/health` are equivalent on Flask.)
 
 ---
 
@@ -162,7 +170,7 @@ If `INTERNAL_WEBHOOK_SECRET` is missing or mismatched, the lead will not update 
 | Check | What “good” looks like |
 |-------|-------------------------|
 | Railway logs | No crash loop; Gunicorn worker booted. |
-| `GET /health` on Railway | `200` JSON with service status. |
+| `GET /health` or `GET /api/health` on Railway | `200` JSON with service status. |
 | Vercel build | Success; no missing env errors at runtime. |
 | `GET /api/health` on Vercel | `200` JSON (`tradescore-web`, Stripe mode hint). |
 | **Lead flow** | Submit job on `/lead-capture` → success dialog with grade/score. |

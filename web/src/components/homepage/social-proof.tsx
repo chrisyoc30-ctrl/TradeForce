@@ -1,100 +1,74 @@
-import { BadgeCheck, Lock, TrendingUp } from "lucide-react";
+import Link from "next/link";
+
+import { Banknote, Percent, HandCoins } from "lucide-react";
 
 import { HomepageSection } from "@/components/homepage/section";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-const stats = [
-  { value: "2,500+", label: "Tradesmen ready" },
-  { value: "5,000+", label: "Projects matched" },
-  { value: "£2.5M+", label: "Value generated" },
-] as const;
-
-const testimonials = [
-  {
-    quote:
-      "Finally stopped chasing tyre-kickers. The scored leads actually show up and want work done.",
-    name: "James R.",
-    role: "Plumber, Glasgow South",
-  },
-  {
-    quote:
-      "Posted one evening, had three solid quotes by lunch. No endless phone tag.",
-    name: "Laura M.",
-    role: "Homeowner, West End",
-  },
-  {
-    quote:
-      "Flat fee per lead beats losing margin on commission. I pick the jobs I want.",
-    name: "Ahmad K.",
-    role: "Electrician, Greater Glasgow",
-  },
-] as const;
-
-const badges = [
-  { label: "Verified trades", icon: BadgeCheck },
-  { label: "Secure payments", icon: Lock },
-  { label: "Real results", icon: TrendingUp },
+const launchStats = [
+  { value: "Free", label: "Always free for homeowners", icon: HandCoins },
+  { value: "£25", label: "Flat fee per lead for trades", icon: Banknote },
+  { value: "0%", label: "Commission on your work", icon: Percent },
 ] as const;
 
 export function SocialProof() {
   return (
     <HomepageSection
       id="proof"
-      eyebrow="Social proof"
-      title="Trusted by people who value their time"
-      description="We’re growing fast across Glasgow — here’s what early users are saying."
+      eyebrow="How we work"
+      title="Launching across Glasgow"
+      description="Upfront, honest numbers — we’re building with trades and homeowners, not padding stats."
       className="border-y border-white/5 bg-zinc-900/20"
     >
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
         <div>
           <ul
             className="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-1 lg:gap-8"
-            aria-label="Platform statistics"
+            aria-label="Platform pricing snapshot"
           >
-            {stats.map(({ value, label }) => (
+            {launchStats.map(({ value, label, icon: Icon }) => (
               <li
                 key={label}
                 className="rounded-xl border border-white/10 bg-zinc-950/50 px-5 py-4 text-center sm:text-left"
               >
-                <p className="text-3xl font-semibold tabular-nums text-[#FF6B35]">
+                <Icon
+                  className="mx-auto mb-2 h-5 w-5 text-[#FF6B35] sm:mx-0"
+                  aria-hidden
+                />
+                <p className="text-2xl font-semibold tabular-nums text-[#FF6B35] sm:text-3xl">
                   {value}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">{label}</p>
               </li>
             ))}
           </ul>
-
-          <ul
-            className="mt-8 flex flex-wrap justify-center gap-3 sm:justify-start"
-            aria-label="Trust badges"
-          >
-            {badges.map(({ label, icon: Icon }) => (
-              <li
-                key={label}
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-muted-foreground"
-              >
-                <Icon className="h-3.5 w-3.5 text-[#FF6B35]" aria-hidden />
-                {label}
-              </li>
-            ))}
-          </ul>
         </div>
 
-        <ul className="space-y-4" aria-label="Testimonials">
-          {testimonials.map(({ quote, name, role }) => (
-            <li
-              key={name}
-              className="rounded-xl border border-white/10 bg-zinc-950/40 p-5 sm:p-6"
-            >
-              <blockquote className="text-sm leading-relaxed text-slate-100 sm:text-base">
-                &ldquo;{quote}&rdquo;
-              </blockquote>
-              <footer className="mt-4 text-xs text-slate-100 sm:text-sm">
-                <cite className="font-medium not-italic text-slate-100">{name}</cite>
-                <span> — {role}</span>
-              </footer>
-            </li>
-          ))}
-        </ul>
+        <div
+          className="flex flex-col justify-center rounded-2xl border border-[#FF6B35]/30 bg-zinc-950/60 px-6 py-8 text-center sm:px-8"
+          aria-labelledby="waitlist-heading"
+        >
+          <h2
+            id="waitlist-heading"
+            className="text-lg font-semibold tracking-tight text-foreground sm:text-xl"
+          >
+            Be one of our first tradespeople in Glasgow
+          </h2>
+          <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+            We&apos;re onboarding a small group of quality tradespeople before
+            our public launch. First lead is on us.
+          </p>
+          <Link
+            href="/tradesman-signup"
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "mt-6 inline-flex justify-center border-0 bg-[#FF6B35] text-white hover:bg-[#e85f2d]"
+            )}
+          >
+            Join the early access list
+          </Link>
+        </div>
       </div>
     </HomepageSection>
   );

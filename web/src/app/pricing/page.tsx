@@ -5,9 +5,9 @@ import { pricingCopy } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
-  title: "Pricing | TradeScore",
+  title: "Pricing",
   description:
-    "Homeowners post for free. Trades pay £25 per lead after one free lead — no commission.",
+    "Simple, transparent pricing. Free for homeowners. £25 per lead for tradespeople. No commission. No subscription.",
 };
 
 export default function PricingPage() {
