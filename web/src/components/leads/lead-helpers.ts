@@ -1,4 +1,5 @@
 import type { Lead } from "@/types/lead";
+import { midpointForBudgetInput } from "@/lib/quote-estimate";
 
 export function budgetLabel(lead: Lead): string {
   const b = lead.budget;
@@ -9,6 +10,7 @@ export function budgetLabel(lead: Lead): string {
   }
   const s = String(b).trim();
   if (!s) return "—";
+  if (/not sure yet/i.test(s)) return "Not sure yet";
   if (/[£$]/.test(s)) return s;
   return `£${s}`;
 }
@@ -44,6 +46,8 @@ export function parseBudgetNumber(lead: Lead): number {
   const b = lead.budget;
   if (typeof b === "number" && !Number.isNaN(b)) return b;
   if (b === undefined || b === null) return 0;
+  const fromBand = midpointForBudgetInput(b);
+  if (fromBand > 0) return fromBand;
   const n = parseFloat(String(b).replace(/[£$,\s]/g, ""));
   return Number.isFinite(n) ? n : 0;
 }

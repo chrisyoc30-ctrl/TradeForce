@@ -14,6 +14,7 @@ import { trackLeadSubmitted } from "@/lib/analytics";
 import { isLeadFormSubmittable } from "@/lib/lead-form-submittable";
 import { leadCaptureFormSchema } from "@/lib/schemas/lead-capture";
 import {
+  LEAD_CAPTURE_BUDGET_RANGE_OPTIONS,
   type ProjectComplexity,
   type ScoreBreakdown,
   calculateQuoteEstimate,
@@ -296,13 +297,21 @@ export function LeadCapture() {
         <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
           <div className="grid gap-2">
             <Label htmlFor="budget">Budget (optional)</Label>
-            <Input
+            <select
               id="budget"
+              name="budget"
               value={f.budget}
-              onValueChange={(value) => setF((s) => ({ ...s, budget: value }))}
-              inputMode="decimal"
-              placeholder="e.g. 1500"
-            />
+              onChange={(e) =>
+                setF((s) => ({ ...s, budget: e.currentTarget.value }))
+              }
+              className={selectClassName}
+            >
+              {LEAD_CAPTURE_BUDGET_RANGE_OPTIONS.map(({ value, label }) => (
+                <option key={value || "empty"} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="projectComplexity" className="text-sm font-medium">

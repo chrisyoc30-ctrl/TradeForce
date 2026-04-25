@@ -78,10 +78,11 @@ export function QuoteEstimator({
               className="animate-in fade-in-0 zoom-in-95 duration-200"
             >
               <p className="text-2xl font-semibold tabular-nums text-foreground">
-                £{q.min} – £{q.max}
+                £{q.min.toLocaleString("en-GB")} – £{q.max.toLocaleString("en-GB")}
               </p>
               <p className="text-xs text-muted-foreground">
-                Midpoint ≈ £{Math.round(q.mid)} (illustrative range ±15%)
+                Midpoint ≈ £{Math.round(q.mid).toLocaleString("en-GB")} (illustrative
+                range ±15%)
               </p>
             </div>
           )}
@@ -89,23 +90,26 @@ export function QuoteEstimator({
             <ul className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
               <li className="flex justify-between gap-2">
                 <span className="flex items-center gap-1">
-                  Base price
-                  {factorTip("Base", "Fixed platform benchmark starting at £50.")}
+                  Band midpoint
+                  {factorTip(
+                    "Band midpoint",
+                    "Typical value around the middle of your selected budget range (or an illustrative range if you have not chosen a band yet)."
+                  )}
                 </span>
-                <span className="text-foreground/90">£{q.base}</span>
+                <span className="text-foreground/90">£{q.base.toLocaleString("en-GB")}</span>
               </li>
               <li className="flex justify-between gap-2">
                 <span className="flex items-center gap-1 text-left">
-                  Budget adjustment
+                  Price band
                   {factorTip(
-                    "Budget adjustment",
-                    "Adds 20% of the base for budgets over £1,000, or 40% for budgets over £5,000 (applied to the base only)."
+                    "Price band",
+                    "Your selected band already sets the scale; the total below applies complexity and timeline to that range."
                   )}
                 </span>
-                <span className="text-foreground/90 text-right">
+                <span className="text-foreground/90 text-right text-xs sm:max-w-[12rem]">
                   {q.budgetAdjustment > 0
                     ? `+£${q.budgetAdjustment} (${q.budgetAdjustmentLabel})`
-                    : "£0"}
+                    : q.budgetAdjustmentLabel}
                 </span>
               </li>
               <li className="flex justify-between gap-2">
