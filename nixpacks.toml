@@ -9,7 +9,12 @@ cmds = ["npm ci --include=dev"]
 
 [phases.build]
 dependsOn = ["install"]
-cmds = ["npm run build"]
+# Tailwind v4 / lightningcss: lockfile from Windows may omit the Linux native binary.
+# Force-install the glibc x64 binding on the Linux builder before `next build`.
+cmds = [
+  "npm install lightningcss-linux-x64-gnu@1.32.0 -w web",
+  "npm run build"
+]
 
 [start]
 cmd = "npm start"

@@ -8,5 +8,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }
