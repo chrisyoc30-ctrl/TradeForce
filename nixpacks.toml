@@ -1,18 +1,18 @@
 # Railway / Nixpacks: build from repo root (npm workspaces). Do not use `cd web && …`.
 # See: https://nixpacks.com/docs/configuration/file
 #
-# Railway often sets NODE_ENV=production, which makes plain `npm ci` skip devDependencies.
-# Next.js `next build` still needs them (eslint, typescript, @types/*, etc.).
+# Use `npm install` (not `npm ci`) so optional native deps for the *build OS* are applied
+# (see https://github.com/npm/cli/issues/4828 — @tailwindcss/oxide, lightningcss).
+# `--include=dev` keeps devDependencies when NODE_ENV=production.
 [phases.install]
 dependsOn = ["setup"]
-cmds = ["npm ci --include=dev"]
+cmds = ["npm install --include=dev --no-audit --no-fund"]
 
 [phases.build]
 dependsOn = ["install"]
-# Tailwind v4 / lightningcss: lockfile from Windows may omit the Linux native binary.
-# Force-install the glibc x64 binding on the Linux builder before `next build`.
+# Belt-and-suspenders: glibc x64 native modules for Linux Metal builders.
 cmds = [
-  "npm install lightningcss-linux-x64-gnu@1.32.0 -w web",
+  "npm install -w web @tailwindcss/oxide-linux-x64-gnu@4.2.4 lightningcss-linux-x64-gnu@1.32.0 --no-audit --no-fund",
   "npm run build"
 ]
 
