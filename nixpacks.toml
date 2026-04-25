@@ -1,8 +1,11 @@
 # Railway / Nixpacks: build from repo root (npm workspaces). Do not use `cd web && …`.
 # See: https://nixpacks.com/docs/configuration/file
-
-[variables]
-NODE_ENV = "production"
+#
+# Railway often sets NODE_ENV=production, which makes plain `npm ci` skip devDependencies.
+# Next.js `next build` still needs them (eslint, typescript, @types/*, etc.).
+[phases.install]
+dependsOn = ["setup"]
+cmds = ["npm ci --include=dev"]
 
 [phases.build]
 dependsOn = ["install"]
