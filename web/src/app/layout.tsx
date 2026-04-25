@@ -17,10 +17,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const metadataBaseUrl =
+  (process.env.NEXT_PUBLIC_SITE_URL || "").trim() || "https://tradescore.uk";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://tradescore.uk"
-  ),
+  metadataBase: new URL(metadataBaseUrl),
   title: {
     default: "TradeScore",
     template: "TradeScore | %s",

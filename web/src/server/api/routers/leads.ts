@@ -20,14 +20,6 @@ const createLeadInput = z.object({
   estimatedQuoteMax: z.number().optional(),
 });
 
-async function readJsonOrThrow(res: globalThis.Response, label: string) {
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`${label}: ${res.status} ${t || res.statusText}`);
-  }
-  return res.json() as Promise<unknown>;
-}
-
 function trpcErrorFromHttpStatus(status: number, bodyText: string): TRPCError {
   let message = bodyText.trim() || "";
   try {
