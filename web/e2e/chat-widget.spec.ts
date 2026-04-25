@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test.describe("AI chat widget", () => {
   test("opens and shows dialog", async ({ page }) => {

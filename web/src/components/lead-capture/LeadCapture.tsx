@@ -222,9 +222,10 @@ export function LeadCapture() {
             name="projectType"
             required
             value={f.projectType}
-            onChange={(e) =>
-              setF((s) => ({ ...s, projectType: e.currentTarget.value }))
-            }
+            onChange={(e) => {
+              const v = (e.target as HTMLSelectElement).value;
+              setF((s) => ({ ...s, projectType: v }));
+            }}
             className={selectClassName}
             aria-invalid={Boolean(fieldErrors.projectType)}
             aria-describedby={fieldErrors.projectType ? "projectType-error" : undefined}
@@ -301,9 +302,10 @@ export function LeadCapture() {
               id="budget"
               name="budget"
               value={f.budget}
-              onChange={(e) =>
-                setF((s) => ({ ...s, budget: e.currentTarget.value }))
-              }
+              onChange={(e) => {
+                const v = (e.target as HTMLSelectElement).value;
+                setF((s) => ({ ...s, budget: v }));
+              }}
               className={selectClassName}
             >
               {LEAD_CAPTURE_BUDGET_RANGE_OPTIONS.map(({ value, label }) => (
@@ -322,7 +324,8 @@ export function LeadCapture() {
               name="projectComplexity"
               value={f.projectComplexity}
               onChange={(e) => {
-                const v = e.currentTarget.value as ProjectComplexity;
+                const v = (e.target as HTMLSelectElement)
+                  .value as ProjectComplexity;
                 setF((s) => ({ ...s, projectComplexity: v }));
               }}
               className={selectClassName}
@@ -343,8 +346,7 @@ export function LeadCapture() {
             name="timeline"
             value={f.timeline}
             onChange={(e) => {
-              const v = e.currentTarget
-                .value as (typeof f)["timeline"];
+              const v = (e.target as HTMLSelectElement).value as (typeof f)["timeline"];
               setF((s) => ({ ...s, timeline: v }));
             }}
             className={selectClassName}
