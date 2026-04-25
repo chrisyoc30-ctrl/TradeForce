@@ -1,34 +1,17 @@
 import { randomBytes } from "crypto";
 
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { buildChatSystemPrompt } from "@/lib/chat-knowledge-base";
 import { invokeLLM, isLlmConfigured } from "@/server/_core/llm";
 import { shouldEscalateFromRules } from "@/server/chat/chat-escalation";
+import { parseLlmJsonOutput } from "@/server/chat/llm-reply-json";
 import {
   loadRecentMessages,
   newConversationId,
   saveChatMessage,
 } from "@/server/chat/chat-store";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
-
-const llmOutputSchema = z.object({
-  reply: z.string(),
-  escalate: z.boolean(),
-  escalationReason: z.string().nullable().optional(),
-  confidence: z.number().min(0).max(100).optional(),
-  suggestedTopics: z.array(z.string()).max(6).optional(),
-});
-
-function parseLlmJson(raw: string) {
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return llmOutputSchema.safeParse(parsed);
-  } catch {
-    return { success: false as const, error: new Error("invalid json") };
-  }
-}
 
 function makeTicketId() {
   return `CHAT-${randomBytes(4).toString("hex").toUpperCase()}`;
@@ -136,7 +119,7 @@ export const chatRouter = createTRPCRouter({
           temperature: 0.35,
           maxTokens: 900,
         });
-        const parsed = parseLlmJson(raw);
+        const parsed = parseLlmJsonOutput(raw);
         if (!parsed.success) {
           assistantText =
             "I couldn’t quite process that. Could you rephrase in one short question? You can also email **hello@tradescore.uk** and we’ll pick it up.";
@@ -151,15 +134,17 @@ export const chatRouter = createTRPCRouter({
         }
       } catch (e) {
         console.error("[chat] LLM error", e);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            process.env.NODE_ENV === "development"
-              ? e instanceof Error
-                ? e.message
-                : "LLM error"
-              : "The assistant is temporarily unavailable. Please try again soon or email hello@tradescore.uk.",
-        });
+        const detail =
+          process.env.NODE_ENV === "development" && e instanceof Error
+            ? e.message
+            : "";
+        assistantText = detail
+          ? `I’m having trouble reaching the AI service (${detail.slice(0, 200)}). Please try again in a moment or email **hello@tradescore.uk** for help.`
+          : "I’m having trouble reaching the AI service right now. Please try again in a moment, or email **hello@tradescore.uk** and we’ll help you there.";
+        suggestedTopics = [];
+        modelEscalate = true;
+        modelReason = "llm_request_failed";
+        confidence = 0;
       }
 
       const lowConfidence = confidence < 60;

@@ -66,4 +66,14 @@ describe("chat.sendMessage", () => {
     expect(out.escalationReason).toBe("llm_unconfigured");
     expect(invokeLLM).not.toHaveBeenCalled();
   });
+
+  it("returns a graceful reply when the LLM request fails (no TRPC 500)", async () => {
+    process.env.OPENAI_API_KEY = "test";
+    invokeLLM.mockRejectedValue(new Error("429 rate limit"));
+    const caller = appRouter.createCaller(await createTRPCContext());
+    const out = await caller.chat.sendMessage({ message: "Hello" });
+    expect(out.escalated).toBe(true);
+    expect(out.response).toMatch(/trouble|rate limit|hello@tradescore/i);
+    expect(out.escalationReason).toBe("llm_request_failed");
+  });
 });

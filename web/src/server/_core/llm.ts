@@ -43,7 +43,10 @@ export async function invokeLLM({
     messages: [{ role: "system", content: system }, ...messages],
   };
 
-  if (jsonMode) {
+  /** Set OPENAI_JSON_OBJECT_MODE=false for APIs that do not support `response_format` (e.g. some local proxies). */
+  const useJsonObjectMode =
+    jsonMode && process.env.OPENAI_JSON_OBJECT_MODE !== "false";
+  if (useJsonObjectMode) {
     body.response_format = { type: "json_object" };
   }
 
