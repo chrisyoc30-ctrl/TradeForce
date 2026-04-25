@@ -5,9 +5,13 @@ import { createTRPCContext } from "@/server/api/trpc";
 
 const invokeLLM = vi.hoisted(() => vi.fn());
 
-vi.mock("@/server/_core/llm", () => ({
-  invokeLLM: (...args: unknown[]) => invokeLLM(...args),
-}));
+vi.mock("@/server/_core/llm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/server/_core/llm")>();
+  return {
+    ...actual,
+    invokeLLM: (...args: unknown[]) => invokeLLM(...args),
+  };
+});
 
 vi.mock("@/server/chat/chat-store", () => ({
   newConversationId: () => "00000000-0000-4000-8000-0000000000aa",
@@ -17,6 +21,7 @@ vi.mock("@/server/chat/chat-store", () => ({
 
 describe("chat.sendMessage", () => {
   beforeEach(() => {
+    process.env.OPENAI_API_KEY = "test";
     invokeLLM.mockReset();
     invokeLLM.mockResolvedValue(
       JSON.stringify({
@@ -47,6 +52,18 @@ describe("chat.sendMessage", () => {
     });
     expect(out.escalated).toBe(true);
     expect(out.ticketId).toMatch(/^CHAT-/);
+    expect(invokeLLM).not.toHaveBeenCalled();
+  });
+
+  it("returns a human-escalation reply when OPENAI_API_KEY is not set (no 500)", async () => {
+    delete process.env.OPENAI_API_KEY;
+    const caller = appRouter.createCaller(await createTRPCContext());
+    const out = await caller.chat.sendMessage({
+      message: "What is the lead price?",
+    });
+    expect(out.escalated).toBe(true);
+    expect(out.response).toContain("hello@tradescore.uk");
+    expect(out.escalationReason).toBe("llm_unconfigured");
     expect(invokeLLM).not.toHaveBeenCalled();
   });
 });

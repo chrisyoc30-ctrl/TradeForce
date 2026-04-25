@@ -13,6 +13,11 @@ export type InvokeLLMOptions = {
   maxTokens?: number;
 };
 
+/** True when the server can call the OpenAI-compatible API (e.g. production has OPENAI_API_KEY). */
+export function isLlmConfigured(): boolean {
+  return Boolean(process.env.OPENAI_API_KEY?.trim());
+}
+
 export async function invokeLLM({
   system,
   messages,

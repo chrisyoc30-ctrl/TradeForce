@@ -9,6 +9,8 @@ import {
 } from "react";
 import { MessageCircle, Send, X, Minus, Maximize2 } from "lucide-react";
 
+import { TRPCClientError } from "@trpc/client";
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -223,13 +225,13 @@ export function AIChatBox() {
         });
         dispatch({ type: "SET_SUGGESTED", topics: res.suggestedTopics ?? [] });
       } catch (e) {
-        dispatch({
-          type: "SET_ERROR",
-          error:
-            e instanceof Error
+        const msg =
+          e instanceof TRPCClientError
+            ? e.message
+            : e instanceof Error
               ? e.message
-              : "Something went wrong. Try again or email hello@tradescore.uk.",
-        });
+              : "Something went wrong. Try again or email hello@tradescore.uk.";
+        dispatch({ type: "SET_ERROR", error: msg });
       } finally {
         dispatch({ type: "SET_LOADING", loading: false });
       }

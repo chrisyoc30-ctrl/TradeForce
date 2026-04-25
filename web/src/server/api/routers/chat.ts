@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { buildChatSystemPrompt } from "@/lib/chat-knowledge-base";
-import { invokeLLM } from "@/server/_core/llm";
+import { invokeLLM, isLlmConfigured } from "@/server/_core/llm";
 import { shouldEscalateFromRules } from "@/server/chat/chat-escalation";
 import {
   loadRecentMessages,
@@ -82,6 +82,30 @@ export const chatRouter = createTRPCRouter({
           response: text,
           escalated: true,
           escalationReason: ruleHit.reason,
+          suggestedTopics: [] as string[],
+          conversationId,
+          ticketId,
+          confidence: undefined as number | undefined,
+        };
+      }
+
+      if (!isLlmConfigured()) {
+        const ticketId = makeTicketId();
+        const text = `Thanks for your message. I can’t use our automated answers right now — the assistant isn’t fully configured on this server. Please email **hello@tradescore.uk** and we’ll help you. Your reference: **${ticketId}** (include it in your email).`;
+        await saveChatMessage({
+          conversationId,
+          userId: input.userId,
+          userRole: input.userRole,
+          messageType: "assistant",
+          content: text,
+          timestamp: new Date(),
+          escalated: true,
+          escalationReason: "llm_unconfigured",
+        });
+        return {
+          response: text,
+          escalated: true,
+          escalationReason: "llm_unconfigured",
           suggestedTopics: [] as string[],
           conversationId,
           ticketId,
