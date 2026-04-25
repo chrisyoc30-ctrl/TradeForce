@@ -1,0 +1,12 @@
+{
+  "name": "tradeforce",
+  "private": true,
+  "workspaces": ["web"],
+  "scripts": {
+    "build": "npm run build -w web",
+    "start": "npm start -w web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
