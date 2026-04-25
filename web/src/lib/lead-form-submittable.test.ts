@@ -1,0 +1,38 @@
+import { describe, expect, it } from "vitest";
+
+import { isLeadFormSubmittable } from "./lead-form-submittable";
+
+describe("isLeadFormSubmittable", () => {
+  it("false when required fields empty", () => {
+    expect(
+      isLeadFormSubmittable({
+        name: "",
+        phone: "1",
+        projectType: "x",
+        description: "y",
+      }),
+    ).toBe(false);
+  });
+
+  it("true when all required trimmed non-empty", () => {
+    expect(
+      isLeadFormSubmittable({
+        name: "Alex",
+        phone: "07123456789",
+        projectType: "Plumbing",
+        description: "Leak under sink",
+      }),
+    ).toBe(true);
+  });
+
+  it("false when only whitespace in description", () => {
+    expect(
+      isLeadFormSubmittable({
+        name: "Alex",
+        phone: "07123456789",
+        projectType: "Plumbing",
+        description: "   ",
+      }),
+    ).toBe(false);
+  });
+});
