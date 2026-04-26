@@ -30,6 +30,28 @@ export function isLlmConfigured(): boolean {
   return Boolean(getOpenAiApiKey());
 }
 
+const DEFAULT_CHAT_MODEL = "gpt-4o-mini";
+
+/**
+ * Resolves `OPENAI_CHAT_MODEL` to a real OpenAI id. The letter “o” in 4o is often
+ * mistyped as zero (`gpt-40-mini`) in env UIs, which 404s at the API.
+ */
+export function resolveOpenAiChatModel(raw: string | undefined): string {
+  if (!raw?.trim()) {
+    return DEFAULT_CHAT_MODEL;
+  }
+  const trimmed = raw.trim();
+  const key = trimmed.toLowerCase();
+  // Dashboard typos: "4o" → "40" or "4" + "0"
+  if (key === "gpt-40-mini" || key === "gpt-4o-0mini" || key === "gpt-4-0-mini") {
+    console.warn(
+      `[llm] OPENAI_CHAT_MODEL "${trimmed}" is invalid (use gpt-4o-mini with the letter o, not 40). Using ${DEFAULT_CHAT_MODEL}.`,
+    );
+    return DEFAULT_CHAT_MODEL;
+  }
+  return trimmed;
+}
+
 export async function invokeLLM({
   system,
   messages,
@@ -42,7 +64,7 @@ export async function invokeLLM({
     throw new Error("OPENAI_API_KEY is not configured");
   }
 
-  const model = process.env.OPENAI_CHAT_MODEL ?? "gpt-4o-mini";
+  const model = resolveOpenAiChatModel(process.env.OPENAI_CHAT_MODEL);
   const baseUrl = (process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1").replace(
     /\/$/,
     "",
