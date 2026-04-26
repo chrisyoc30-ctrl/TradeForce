@@ -3,14 +3,14 @@ export function isLeadFormSubmittable(f: {
   name: string;
   phone: string;
   projectType: string;
-  location: string;
+  postcode: string;
   description: string;
 }): boolean {
   return Boolean(
     f.name.trim() &&
       f.phone.trim() &&
       f.projectType.trim() &&
-      f.location.trim() &&
+      f.postcode.trim() &&
       f.description.trim(),
   );
 }

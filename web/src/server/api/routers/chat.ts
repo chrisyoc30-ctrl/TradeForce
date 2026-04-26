@@ -181,17 +181,4 @@ export const chatRouter = createTRPCRouter({
         confidence,
       };
     }),
-
-  getHistory: publicProcedure
-    .input(z.object({ conversationId: z.string().min(8).max(80) }))
-    .query(async ({ input }) => {
-      const rows = await loadRecentMessages(input.conversationId, 100);
-      return rows.map((r, i) => ({
-        id: `${r.timestamp.getTime()}-${i}-${r.messageType}`,
-        type: r.messageType,
-        content: r.content,
-        timestamp: r.timestamp.toISOString(),
-        escalated: r.escalated ?? false,
-      }));
-    }),
 });

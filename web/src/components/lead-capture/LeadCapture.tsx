@@ -49,9 +49,9 @@ const selectClassName =
 const emptyForm = {
   name: "",
   phone: "",
+  postcode: "",
   email: "",
   projectType: "",
-  location: "",
   description: "",
   budget: "",
   timeline: "flexible" as "this week" | "this month" | "flexible",
@@ -108,7 +108,7 @@ export function LeadCapture() {
             phone: f.phone,
             email: f.email,
             projectType: f.projectType,
-            location: f.location,
+            postcode: f.postcode,
             description: f.description,
             budget: f.budget,
             timeline: f.timeline,
@@ -132,7 +132,7 @@ export function LeadCapture() {
             phone: v.phone,
             email: v.email,
             projectType: v.projectType,
-            location: v.location,
+            postcode: v.postcode,
             description: v.description,
             budget: v.budget || undefined,
             timeline: v.timeline,
@@ -167,7 +167,6 @@ export function LeadCapture() {
             value={f.name}
             onValueChange={(value) => setF((s) => ({ ...s, name: value }))}
             autoComplete="name"
-            required
             aria-invalid={Boolean(fieldErrors.name)}
             aria-describedby={fieldErrors.name ? "name-error" : undefined}
           />
@@ -177,42 +176,62 @@ export function LeadCapture() {
             </p>
           ) : null}
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="phone">Phone *</Label>
-            <Input
-              id="phone"
-              value={f.phone}
-              onValueChange={(value) => setF((s) => ({ ...s, phone: value }))}
-              autoComplete="tel"
-              inputMode="tel"
-              required
-              aria-invalid={Boolean(fieldErrors.phone)}
-              aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
-            />
-            {fieldErrors.phone ? (
-              <p id="phone-error" className="text-sm text-destructive" role="alert">
-                {fieldErrors.phone}
-              </p>
-            ) : null}
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={f.email}
-              onValueChange={(value) => setF((s) => ({ ...s, email: value }))}
-              autoComplete="email"
-              aria-invalid={Boolean(fieldErrors.email)}
-              aria-describedby={fieldErrors.email ? "email-error" : undefined}
-            />
-            {fieldErrors.email ? (
-              <p id="email-error" className="text-sm text-destructive" role="alert">
-                {fieldErrors.email}
-              </p>
-            ) : null}
-          </div>
+        <div className="grid gap-2">
+          <Label htmlFor="phone">Phone *</Label>
+          <Input
+            id="phone"
+            value={f.phone}
+            onValueChange={(value) => setF((s) => ({ ...s, phone: value }))}
+            autoComplete="tel"
+            inputMode="tel"
+            aria-invalid={Boolean(fieldErrors.phone)}
+            aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
+          />
+          {fieldErrors.phone ? (
+            <p id="phone-error" className="text-sm text-destructive" role="alert">
+              {fieldErrors.phone}
+            </p>
+          ) : null}
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="postcode">Postcode *</Label>
+          <Input
+            id="postcode"
+            value={f.postcode}
+            onValueChange={(value) =>
+              setF((s) => ({ ...s, postcode: value.toUpperCase() }))
+            }
+            autoComplete="postal-code"
+            placeholder="e.g. G1 1AA"
+            aria-invalid={Boolean(fieldErrors.postcode)}
+            aria-describedby={fieldErrors.postcode ? "postcode-error" : undefined}
+          />
+          {fieldErrors.postcode ? (
+            <p
+              id="postcode-error"
+              className="text-sm text-destructive"
+              role="alert"
+            >
+              {fieldErrors.postcode}
+            </p>
+          ) : null}
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={f.email}
+            onValueChange={(value) => setF((s) => ({ ...s, email: value }))}
+            autoComplete="email"
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? "email-error" : undefined}
+          />
+          {fieldErrors.email ? (
+            <p id="email-error" className="text-sm text-destructive" role="alert">
+              {fieldErrors.email}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-2">
@@ -220,7 +239,6 @@ export function LeadCapture() {
           <select
             id="projectType"
             name="projectType"
-            required
             value={f.projectType}
             onChange={(e) => {
               const v = (e.target as HTMLSelectElement).value;
@@ -244,25 +262,6 @@ export function LeadCapture() {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="location">Your postcode or area *</Label>
-          <Input
-            id="location"
-            value={f.location}
-            onValueChange={(value) => setF((s) => ({ ...s, location: value }))}
-            placeholder="e.g. G1 1AA or West End"
-            required
-            autoComplete="street-address"
-            aria-invalid={Boolean(fieldErrors.location)}
-            aria-describedby={fieldErrors.location ? "location-error" : undefined}
-          />
-          {fieldErrors.location ? (
-            <p id="location-error" className="text-sm text-destructive" role="alert">
-              {fieldErrors.location}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-2">
           <Label htmlFor="description">Project description *</Label>
           <Textarea
             id="description"
@@ -272,7 +271,6 @@ export function LeadCapture() {
             }
             className="min-h-[120px] resize-y"
             placeholder="What needs doing, access, materials…"
-            required
             aria-invalid={Boolean(fieldErrors.description)}
             aria-describedby={fieldErrors.description ? "description-error" : undefined}
           />

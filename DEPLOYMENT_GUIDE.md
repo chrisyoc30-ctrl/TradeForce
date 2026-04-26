@@ -14,7 +14,7 @@ The browser talks to **Flask** via `NEXT_PUBLIC_API_URL`. The Next.js server (tR
 
 ## Prerequisites
 
-1. **GitHub** — Repo pushed (e.g. `TradeForce`).
+1. **GitHub** — Repo pushed (e.g. `TradeScore`).
 2. **MongoDB Atlas** — Free cluster; database user + **Network Access** allow `0.0.0.0/0` (or Railway/Vercel egress IPs if you restrict).
 3. **Stripe** — Account in **test** mode first; later switch to live keys.
 4. **Vercel + Railway** accounts (GitHub login is easiest).

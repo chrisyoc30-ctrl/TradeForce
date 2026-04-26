@@ -12,6 +12,8 @@ export interface Lead {
   description?: string;
   /** Postcode or area (Glasgow). */
   location?: string;
+  /** Structured UK postcode when supplied by homeowner form. */
+  postcode?: string;
   budget?: number | string;
   timeline?: string;
   aiScore?: number;

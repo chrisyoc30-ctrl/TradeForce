@@ -50,10 +50,10 @@ export default function TradesmanSignupPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Link
-          href="/lead-scoring"
+          href="/available-jobs"
           className={cn(buttonVariants({ size: "lg" }), "inline-flex justify-center")}
         >
-          View available leads
+          View available jobs
         </Link>
         <Link
           href="/pricing"

@@ -1,5 +1,7 @@
 import hashlib
 import re
+import secrets
+import string
 import uuid
 from datetime import datetime, timezone
 
@@ -197,7 +199,24 @@ def _serialise_lead(doc: dict) -> dict:
 _MEMORY_LEADS: list = []
 _MEMORY_BIDS: list = []
 _MEMORY_TRADESPEOPLE: list = []
+_MEMORY_TRADESMAN_SIGNUPS: list = []
 _MEMORY_LEAD_NOTIFICATIONS: list = []
+
+_TRADESPERSON_ID_CHARS = string.ascii_uppercase + string.digits
+
+
+def _new_tradesperson_id_unique(database):
+    """Return TS- + 6 uppercase alphanumeric; ensure unique in tradesman_signups."""
+    for _ in range(200):
+        suffix = "".join(secrets.choice(_TRADESPERSON_ID_CHARS) for _ in range(6))
+        tid = f"TS-{suffix}"
+        if database is None:
+            if not any(str(d.get("id")) == tid for d in _MEMORY_TRADESMAN_SIGNUPS):
+                return tid
+        else:
+            if not database.tradesman_signups.find_one({"id": tid}):
+                return tid
+    return f"TS-{uuid.uuid4().hex[:6].upper()}"
 
 
 def _memory_find_lead(lead_id: str):
@@ -419,18 +438,7 @@ def api_health():
     """Same as /health; use this for health checks and docs that expect /api/health."""
     return jsonify({"status": "ok", "service": "TradeScore Backend"}), 200
 
-
-@app.route("/api/leads", methods=["GET"])
-def get_leads():
-    try:
-        database = get_db()
-        if database is None:
-            return jsonify([_serialise_lead(d) for d in _MEMORY_LEADS]), 200
-        leads = list(database.leads.find({}))
-        return jsonify([_serialise_lead(d) for d in leads]), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+# GET /api/leads removed — unauthenticated endpoint, security risk
 
 @app.route("/api/leads/unmatched", methods=["GET"])
 def get_unmatched_leads():
@@ -521,10 +529,16 @@ def create_lead():
         if not isinstance(data, dict):
             return jsonify({"error": "Request body must be a JSON object"}), 400
 
-        required_fields = ["name", "phone", "location"]
+        required_fields = ["name", "phone", "postcode"]
         missing_fields = [field for field in required_fields if not str(data.get(field) or "").strip()]
         if missing_fields:
             return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
+
+        data = dict(data)
+        pc = str(data.get("postcode", "")).strip()
+        data["postcode"] = pc
+        if not str(data.get("location") or "").strip():
+            data["location"] = pc
 
         database = get_db()
         if database is None:
@@ -842,6 +856,118 @@ def register_tradesperson():
         return jsonify({"ok": True, "id": str(result.inserted_id)}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/tradesman/<id>/validate", methods=["GET"])
+def validate_tradesperson(id):
+    try:
+        key = (id or "").strip()
+        if not key:
+            return jsonify({"valid": False}), 404
+        database = get_db()
+        if database is None:
+            for doc in _MEMORY_TRADESMAN_SIGNUPS:
+                if str(doc.get("id")) == key:
+                    return (
+                        jsonify(
+                            {
+                                "valid": True,
+                                "name": str(doc.get("full_name", "")),
+                            }
+                        ),
+                        200,
+                    )
+            return jsonify({"valid": False}), 404
+        doc = database.tradesman_signups.find_one({"id": key})
+        if not doc:
+            return jsonify({"valid": False}), 404
+        return (
+            jsonify({"valid": True, "name": str(doc.get("full_name", ""))}),
+            200,
+        )
+    except Exception:
+        return jsonify({"valid": False}), 404
+
+
+@app.route("/api/tradesman-signup", methods=["POST"])
+def tradesman_signup():
+    try:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "Request body must be a JSON object"}), 400
+        full_name = str(data.get("full_name", "")).strip()
+        business_name = str(data.get("business_name", "")).strip()
+        trade_type = str(data.get("trade_type", "")).strip()
+        phone = str(data.get("phone", "")).strip()
+        email = str(data.get("email", "")).strip()
+        postcode = str(data.get("postcode", "")).strip()
+        fields = {
+            "full_name": full_name,
+            "trade_type": trade_type,
+            "phone": phone,
+            "email": email,
+            "postcode": postcode,
+        }
+        for k, v in fields.items():
+            if not v:
+                return jsonify({"error": f"Missing or empty field: {k}"}), 400
+        if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
+            return jsonify({"error": "Invalid email address"}), 400
+        email_key = email.lower()
+        database = get_db()
+        if database is None:
+            for doc in _MEMORY_TRADESMAN_SIGNUPS:
+                if str(doc.get("email", "")).lower() == email_key:
+                    return (
+                        jsonify(
+                            {
+                                "error": "An account with this email already exists",
+                            }
+                        ),
+                        409,
+                    )
+            tid = _new_tradesperson_id_unique(None)
+            doc = {
+                "id": tid,
+                "full_name": full_name,
+                "business_name": business_name or None,
+                "trade_type": trade_type,
+                "phone": phone,
+                "email": email_key,
+                "postcode": postcode,
+                "created_at": datetime.now(timezone.utc),
+                "status": "active",
+            }
+            _MEMORY_TRADESMAN_SIGNUPS.append(doc)
+            return jsonify({"success": True, "tradesperson_id": tid}), 201
+        if database.tradesman_signups.find_one({"email": email_key}):
+            return (
+                jsonify(
+                    {"error": "An account with this email already exists"},
+                ),
+                409,
+            )
+        tid = _new_tradesperson_id_unique(database)
+        doc = {
+            "id": tid,
+            "full_name": full_name,
+            "business_name": business_name or None,
+            "trade_type": trade_type,
+            "phone": phone,
+            "email": email_key,
+            "postcode": postcode,
+            "created_at": datetime.now(timezone.utc),
+            "status": "active",
+        }
+        try:
+            database.tradesman_signups.insert_one(doc)
+        except Exception:
+            app.logger.exception("tradesman_signups insert")
+            return jsonify({"error": "Could not save registration"}), 500
+        return jsonify({"success": True, "tradesperson_id": tid}), 201
+    except Exception:
+        app.logger.exception("tradesman_signup")
+        return jsonify({"error": "Could not complete registration"}), 500
 
 
 @app.route("/api/notify-me", methods=["POST"])

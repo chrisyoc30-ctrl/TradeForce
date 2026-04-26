@@ -10,7 +10,7 @@ const createLeadInput = z.object({
   name: z.string().min(1),
   phone: z.string().min(1),
   email: z.string().optional(),
-  location: z.string().min(1),
+  postcode: z.string().min(1),
   projectType: z.string().optional(),
   description: z.string().optional(),
   budget: z.union([z.number(), z.string()]).optional(),
@@ -45,6 +45,8 @@ function trpcErrorFromHttpStatus(status: number, bodyText: string): TRPCError {
 }
 
 export const leadsRouter = createTRPCRouter({
+  // Duplicated fetch contract with `tradesman.getMatchedProjects` (same /api/leads/unmatched);
+  // both are used (lead scoring board vs available jobs / cache invalidation). Consolidate later if desired.
   getUnmatched: publicProcedure.query(async () => {
     const base = getApiBaseUrl();
     const res = await fetch(`${base}/api/leads/unmatched`, {
@@ -74,7 +76,8 @@ export const leadsRouter = createTRPCRouter({
             name: input.name,
             phone: input.phone,
             email: input.email,
-            location: input.location,
+            postcode: input.postcode,
+            location: input.postcode,
             projectType: input.projectType,
             service: input.projectType,
             description: input.description,

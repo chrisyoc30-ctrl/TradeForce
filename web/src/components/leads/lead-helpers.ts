@@ -24,6 +24,8 @@ export function projectTypeLabel(lead: Lead): string {
 }
 
 export function locationLabel(lead: Lead): string {
+  const pc = lead.postcode?.trim();
+  if (pc) return pc;
   const s = (lead.location as string | undefined)?.trim();
   return s || "—";
 }

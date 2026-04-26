@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { UK_POSTCODE_REGEX } from "@/lib/uk-postcode";
+
 /**
  * Client-side lead form validation (stricter UX than tRPC min rules).
  * Keep aligned with `LeadCapture` fields and `leads.create` input.
@@ -33,11 +35,12 @@ export const leadCaptureFormSchema = z.object({
     .trim()
     .min(1, "Please select a project type")
     .max(120),
-  location: z
+  postcode: z
     .string()
     .trim()
-    .min(2, "Enter your postcode or area")
-    .max(80),
+    .min(1, "Enter your postcode")
+    .max(12)
+    .regex(UK_POSTCODE_REGEX, "Enter a valid UK postcode (e.g. G1 1AA)"),
   description: z
     .string()
     .trim()

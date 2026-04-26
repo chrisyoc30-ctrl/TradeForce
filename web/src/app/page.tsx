@@ -6,7 +6,6 @@ import { HomeHeader } from "@/components/homepage/home-header";
 import { HomeHero } from "@/components/homepage/hero";
 import { HowItWorks } from "@/components/homepage/how-it-works";
 import { PricingPreview } from "@/components/homepage/pricing-preview";
-import { SocialProof } from "@/components/homepage/social-proof";
 import { HomeStructuredData } from "@/components/homepage/structured-data";
 import { ValuePropositions } from "@/components/homepage/value-propositions";
 
@@ -56,7 +55,6 @@ export default function HomePage() {
           <HomeHero />
           <ValuePropositions />
           <HowItWorks />
-          <SocialProof />
           <PricingPreview />
           <FinalCta />
         </main>
