@@ -10,7 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { gradeClass } from "@/lib/grade-styles";
-import { projectTypeLabel } from "@/components/leads/lead-helpers";
+import {
+  budgetLabel,
+  descriptionExcerpt,
+  locationLabel,
+  projectTypeLabel,
+  timelineLabel,
+} from "@/components/leads/lead-helpers";
 import { cn } from "@/lib/utils";
 
 export default function HomeownerDashboardPage() {
@@ -84,6 +90,14 @@ export default function HomeownerDashboardPage() {
                       {lead.aiGrade ?? "—"}
                     </span>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    {locationLabel(lead)} · {budgetLabel(lead)} · {timelineLabel(lead)}
+                  </p>
+                  {lead.description ? (
+                    <p className="text-sm text-foreground/90 line-clamp-2">
+                      {descriptionExcerpt(lead, 160)}
+                    </p>
+                  ) : null}
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">
                       Score {lead.aiScore ?? "—"}/100

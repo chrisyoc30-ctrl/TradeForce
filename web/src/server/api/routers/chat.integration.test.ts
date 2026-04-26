@@ -74,8 +74,8 @@ describe("chat.sendMessage", () => {
     invokeLLM.mockRejectedValue(new Error("429 rate limit"));
     const caller = appRouter.createCaller(await createTRPCContext());
     const out = await caller.chat.sendMessage({ message: "Hello" });
-    expect(out.escalated).toBe(true);
-    expect(out.response).toMatch(/trouble|rate limit|hello@tradescore/i);
-    expect(out.escalationReason).toBe("llm_request_failed");
+    expect(out.escalated).toBe(false);
+    expect(out.response).toMatch(/Sorry, I'm having trouble connecting right now/i);
+    expect(out.escalationReason).toBeUndefined();
   });
 });

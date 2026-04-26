@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Check, Copy, Loader2 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -55,12 +56,17 @@ export function TradesmanSignupForm() {
   const [formErr, setFormErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [idCopied, setIdCopied] = useState(false);
 
   function validate(): boolean {
     const next = emptyErrors();
     let ok = true;
     if (!fullName.trim()) {
       next.full_name = "Enter your full name";
+      ok = false;
+    }
+    if (!businessName.trim()) {
+      next.business_name = "Enter your business name (as shown to homeowners)";
       ok = false;
     }
     if (!tradeType.trim()) {
@@ -100,14 +106,45 @@ export function TradesmanSignupForm() {
           You&apos;re registered — welcome to TradeScore
         </p>
         <p className="text-sm text-muted-foreground">Your tradesperson ID</p>
-        <div className="rounded-md border border-white/10 bg-zinc-900 px-4 py-3 text-center">
-          <code className="text-xl font-mono font-semibold tracking-tight text-[#FF6B35] sm:text-2xl">
+        <div className="space-y-3 rounded-md border border-white/10 bg-zinc-900 px-4 py-5 text-center">
+          <code className="block break-all text-3xl font-mono font-bold leading-tight tracking-tight text-[#FF6B35] sm:text-4xl">
             {successId}
           </code>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border-white/20"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(successId);
+                setIdCopied(true);
+                window.setTimeout(() => setIdCopied(false), 2000);
+              } catch {
+                setIdCopied(false);
+              }
+            }}
+          >
+            {idCopied ? (
+              <>
+                <Check className="mr-1.5 size-4" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="mr-1.5 size-4" />
+                Copy ID
+              </>
+            )}
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Save this ID — you&apos;ll need it to access and bid on available leads
-          at <span className="text-foreground/90">/available-jobs</span>
+          <span className="text-foreground/90">Copy and save it somewhere safe</span> — you
+          will need it to open{" "}
+          <Link className="underline" href="/available-jobs">
+            Available jobs
+          </Link>{" "}
+          and place bids.
         </p>
         <Link
           href="/available-jobs"
@@ -194,14 +231,21 @@ export function TradesmanSignupForm() {
         ) : null}
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="ts-biz">Business name (optional)</Label>
+        <Label htmlFor="ts-biz">Business name *</Label>
         <Input
           id="ts-biz"
           value={businessName}
           onChange={(e) => setBusinessName(e.target.value)}
           autoComplete="organization"
           disabled={pending}
+          aria-invalid={Boolean(errors.business_name)}
+          aria-describedby={errors.business_name ? "ts-biz-err" : undefined}
         />
+        {errors.business_name ? (
+          <p id="ts-biz-err" className="text-sm text-destructive" role="alert">
+            {errors.business_name}
+          </p>
+        ) : null}
       </div>
       <div className="grid gap-2">
         <Label htmlFor="ts-trade">Trade type *</Label>
@@ -304,7 +348,14 @@ export function TradesmanSignupForm() {
         </p>
       ) : null}
       <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-        {pending ? "Submitting…" : "Register"}
+        {pending ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
+            Registering…
+          </>
+        ) : (
+          "Register"
+        )}
       </Button>
     </form>
   );

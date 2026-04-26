@@ -25,6 +25,7 @@ export default function AdminLoginPage() {
       </p>
       <form
         className="space-y-4"
+        noValidate
         onSubmit={async (e) => {
           e.preventDefault();
           setErr(null);

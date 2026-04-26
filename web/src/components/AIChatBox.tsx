@@ -269,7 +269,7 @@ export function AIChatBox() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-[110] flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+      <div className="fixed bottom-4 right-4 z-[110] flex max-w-[100vw] flex-col items-end gap-2 pr-1 sm:bottom-6 sm:right-6 max-sm:bottom-20 max-sm:max-w-[min(100vw,24rem)]">
         {state.isOpen && !state.isMinimized ? (
           <div
             id={panelId}

@@ -85,7 +85,7 @@ export function LeadCapture() {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-8 px-4 py-10">
+    <div className="mx-auto max-w-xl space-y-8 px-4 py-10 pb-28 sm:pb-10">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Post a job</h1>
         <p className="text-sm text-muted-foreground">
@@ -97,6 +97,7 @@ export function LeadCapture() {
 
       <form
         className="space-y-5"
+        noValidate
         onSubmit={(e) => {
           e.preventDefault();
           if (!canSubmit) return;

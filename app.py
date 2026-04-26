@@ -903,6 +903,7 @@ def tradesman_signup():
         postcode = str(data.get("postcode", "")).strip()
         fields = {
             "full_name": full_name,
+            "business_name": business_name,
             "trade_type": trade_type,
             "phone": phone,
             "email": email,
@@ -930,7 +931,7 @@ def tradesman_signup():
             doc = {
                 "id": tid,
                 "full_name": full_name,
-                "business_name": business_name or None,
+                "business_name": business_name,
                 "trade_type": trade_type,
                 "phone": phone,
                 "email": email_key,
@@ -951,7 +952,7 @@ def tradesman_signup():
         doc = {
             "id": tid,
             "full_name": full_name,
-            "business_name": business_name or None,
+            "business_name": business_name,
             "trade_type": trade_type,
             "phone": phone,
             "email": email_key,
