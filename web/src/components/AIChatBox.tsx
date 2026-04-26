@@ -18,6 +18,19 @@ import { trpc } from "@/trpc/react";
 
 const STORAGE_KEY = "tradescore-ai-chat-v1";
 
+function formatChatSendError(e: unknown): string {
+  if (e instanceof TRPCClientError) {
+    const code = e.data?.code ?? "";
+    const base = e.message?.trim() || "Request failed";
+    if (code && code !== "UNKNOWN") {
+      return `${base} (${code})`;
+    }
+    return base;
+  }
+  if (e instanceof Error && e.message) return e.message;
+  return "Something went wrong. Try again or email hello@tradescore.uk.";
+}
+
 type ChatMessage = {
   id: string;
   type: "user" | "assistant";
@@ -225,12 +238,7 @@ export function AIChatBox() {
         });
         dispatch({ type: "SET_SUGGESTED", topics: res.suggestedTopics ?? [] });
       } catch (e) {
-        const msg =
-          e instanceof TRPCClientError
-            ? e.message
-            : e instanceof Error
-              ? e.message
-              : "Something went wrong. Try again or email hello@tradescore.uk.";
+        const msg = formatChatSendError(e);
         dispatch({ type: "SET_ERROR", error: msg });
       } finally {
         dispatch({ type: "SET_LOADING", loading: false });
@@ -251,7 +259,7 @@ export function AIChatBox() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-[100] flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+      <div className="fixed bottom-4 right-4 z-[110] flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
         {state.isOpen && !state.isMinimized ? (
           <div
             id={panelId}

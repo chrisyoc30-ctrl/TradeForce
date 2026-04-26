@@ -57,6 +57,8 @@ describe("chat.sendMessage", () => {
 
   it("returns a human-escalation reply when OPENAI_API_KEY is not set (no 500)", async () => {
     delete process.env.OPENAI_API_KEY;
+    delete process.env.OPEN_API_KEY;
+    delete process.env.OPENAI_KEY;
     const caller = appRouter.createCaller(await createTRPCContext());
     const out = await caller.chat.sendMessage({
       message: "What is the lead price?",

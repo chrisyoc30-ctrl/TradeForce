@@ -13,9 +13,21 @@ export type InvokeLLMOptions = {
   maxTokens?: number;
 };
 
-/** True when the server can call the OpenAI-compatible API (e.g. production has OPENAI_API_KEY). */
+/**
+ * Resolve API key from env. Supports `OPENAI_API_KEY` plus common Railway typos
+ * (e.g. `OPEN_API_KEY` without "AI").
+ */
+export function getOpenAiApiKey(): string | undefined {
+  const k =
+    process.env.OPENAI_API_KEY?.trim() ||
+    process.env.OPEN_API_KEY?.trim() ||
+    process.env.OPENAI_KEY?.trim();
+  return k || undefined;
+}
+
+/** True when the server can call the OpenAI-compatible API (e.g. production has a key set). */
 export function isLlmConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY?.trim());
+  return Boolean(getOpenAiApiKey());
 }
 
 export async function invokeLLM({
@@ -25,7 +37,7 @@ export async function invokeLLM({
   temperature = 0.35,
   maxTokens = 900,
 }: InvokeLLMOptions): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = getOpenAiApiKey();
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not configured");
   }
