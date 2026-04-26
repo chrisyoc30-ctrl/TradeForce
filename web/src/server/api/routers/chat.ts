@@ -6,6 +6,7 @@ import { buildChatSystemPrompt } from "@/lib/chat-knowledge-base";
 import { invokeLLM, isLlmConfigured } from "@/server/_core/llm";
 import { shouldEscalateFromRules } from "@/server/chat/chat-escalation";
 import { parseLlmJsonOutput } from "@/server/chat/llm-reply-json";
+import type { ChatMessageDoc } from "@/server/chat/chat-store";
 import {
   loadRecentMessages,
   newConversationId,
@@ -13,8 +14,20 @@ import {
 } from "@/server/chat/chat-store";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 
+const LLM_USER_FACING_ERROR =
+  "Sorry, I'm having trouble connecting right now. Please try again in a moment.";
+
 function makeTicketId() {
   return `CHAT-${randomBytes(4).toString("hex").toUpperCase()}`;
+}
+
+/** Never let Mongo persistence take down the tRPC request. */
+async function safeSaveChatMessage(doc: ChatMessageDoc): Promise<void> {
+  try {
+    await saveChatMessage(doc);
+  } catch (e) {
+    console.error("[chat] saveChatMessage failed (ignored for response)", e);
+  }
 }
 
 export const chatRouter = createTRPCRouter({
@@ -30,7 +43,12 @@ export const chatRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const conversationId = input.conversationId ?? newConversationId();
-      const recent = await loadRecentMessages(conversationId, 60);
+      let recent: ChatMessageDoc[] = [];
+      try {
+        recent = await loadRecentMessages(conversationId, 60);
+      } catch (e) {
+        console.error("[chat] loadRecentMessages failed; continuing with empty history", e);
+      }
       const historyTurns = recent.map((m) => ({
         role: (m.messageType === "user" ? "user" : "assistant") as "user" | "assistant",
         content: m.content,
@@ -38,7 +56,7 @@ export const chatRouter = createTRPCRouter({
 
       const ruleHit = shouldEscalateFromRules(input.message, historyTurns);
 
-      await saveChatMessage({
+      await safeSaveChatMessage({
         conversationId,
         userId: input.userId,
         userRole: input.userRole,
@@ -51,7 +69,7 @@ export const chatRouter = createTRPCRouter({
       if (ruleHit.escalate) {
         const ticketId = makeTicketId();
         const text = `Thanks for reaching out — I’ve flagged this for our team (${(ruleHit.reason ?? "priority").replace(/_/g, " ")}).\n\nYour reference: **${ticketId}**. We aim to reply within 24 hours from **hello@tradescore.uk**. If you can add dates, screenshots, or the email on your account, that speeds things up.`;
-        await saveChatMessage({
+        await safeSaveChatMessage({
           conversationId,
           userId: input.userId,
           userRole: input.userRole,
@@ -75,7 +93,7 @@ export const chatRouter = createTRPCRouter({
       if (!isLlmConfigured()) {
         const ticketId = makeTicketId();
         const text = `Thanks for your message. I can’t use our automated answers right now — the assistant isn’t fully configured on this server. Please email **hello@tradescore.uk** and we’ll help you. Your reference: **${ticketId}** (include it in your email).`;
-        await saveChatMessage({
+        await safeSaveChatMessage({
           conversationId,
           userId: input.userId,
           userRole: input.userRole,
@@ -134,17 +152,12 @@ export const chatRouter = createTRPCRouter({
         }
       } catch (e) {
         console.error("[chat] LLM error", e);
-        const detail =
-          process.env.NODE_ENV === "development" && e instanceof Error
-            ? e.message
-            : "";
-        assistantText = detail
-          ? `I’m having trouble reaching the AI service (${detail.slice(0, 200)}). Please try again in a moment or email **hello@tradescore.uk** for help.`
-          : "I’m having trouble reaching the AI service right now. Please try again in a moment, or email **hello@tradescore.uk** and we’ll help you there.";
+        assistantText = LLM_USER_FACING_ERROR;
         suggestedTopics = [];
-        modelEscalate = true;
+        modelEscalate = false;
         modelReason = "llm_request_failed";
-        confidence = 0;
+        // Keep confidence ≥ 60 so we do not add a false "low confidence" / ticket queue suffix for transient API errors
+        confidence = 72;
       }
 
       const lowConfidence = confidence < 60;
@@ -160,7 +173,7 @@ export const chatRouter = createTRPCRouter({
         finalText = `${assistantText}\n\n📋 I’ve queued this for our team — reference **${ticketId}**. We’ll follow up within 24 hours from **hello@tradescore.uk**.`;
       }
 
-      await saveChatMessage({
+      await safeSaveChatMessage({
         conversationId,
         userId: input.userId,
         userRole: input.userRole,

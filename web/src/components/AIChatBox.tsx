@@ -20,15 +20,18 @@ const STORAGE_KEY = "tradescore-ai-chat-v1";
 
 function formatChatSendError(e: unknown): string {
   if (e instanceof TRPCClientError) {
-    const code = e.data?.code ?? "";
-    const base = e.message?.trim() || "Request failed";
-    if (code && code !== "UNKNOWN") {
-      return `${base} (${code})`;
+    // Never surface raw server messages or low-level codes to end users
+    if (e.data?.code === "TIMEOUT" || e.data?.code === "CLIENT_CLOSED_REQUEST") {
+      return "That took too long. Check your connection and try again, or email hello@tradescore.uk.";
     }
-    return base;
+    return "We couldn’t send that message. Check your connection and try again, or email hello@tradescore.uk.";
   }
-  if (e instanceof Error && e.message) return e.message;
-  return "Something went wrong. Try again or email hello@tradescore.uk.";
+  if (e instanceof Error && e.message) {
+    if (/network|failed to fetch|load failed/i.test(e.message)) {
+      return "You appear to be offline. Reconnect and try again.";
+    }
+  }
+  return "Something went wrong. Please try again, or email hello@tradescore.uk.";
 }
 
 type ChatMessage = {
@@ -201,19 +204,22 @@ export function AIChatBox() {
     return () => window.removeEventListener("keydown", onKey);
   }, [state.isOpen]);
 
-  const sendMessage = useCallback(
-    async (text: string) => {
+  const sendUserMessage = useCallback(
+    async (text: string, options?: { isRetry?: boolean }) => {
       const trimmed = text.trim();
       if (!trimmed || state.isLoading) return;
+      const isRetry = options?.isRetry === true;
 
       dispatch({ type: "SET_ERROR", error: undefined });
-      const userMsg: ChatMessage = {
-        id: `u-${Date.now()}`,
-        type: "user",
-        content: trimmed,
-        timestamp: Date.now(),
-      };
-      dispatch({ type: "ADD_MESSAGE", message: userMsg });
+      if (!isRetry) {
+        const userMsg: ChatMessage = {
+          id: `u-${Date.now()}`,
+          type: "user",
+          content: trimmed,
+          timestamp: Date.now(),
+        };
+        dispatch({ type: "ADD_MESSAGE", message: userMsg });
+      }
       dispatch({ type: "SET_LOADING", loading: true });
       dispatch({ type: "SET_SUGGESTED", topics: [] });
 
@@ -253,9 +259,13 @@ export function AIChatBox() {
     const fd = new FormData(form);
     const text = String(fd.get("message") ?? "");
     if (!text.trim()) return;
-    void sendMessage(text);
+    void sendUserMessage(text);
     form.reset();
   };
+
+  const lastUserTextForRetry = state.error
+    ? [...state.messages].reverse().find((m) => m.type === "user")?.content
+    : undefined;
 
   return (
     <>
@@ -391,7 +401,7 @@ export function AIChatBox() {
                   <button
                     key={t}
                     type="button"
-                    onClick={() => void sendMessage(t)}
+                    onClick={() => void sendUserMessage(t)}
                     className="rounded-full border border-[#FF6B35]/35 bg-[#FF6B35]/10 px-2.5 py-1 text-xs font-medium text-[#FF6B35] transition-colors hover:bg-[#FF6B35]/20"
                   >
                     {t}
@@ -401,9 +411,26 @@ export function AIChatBox() {
             ) : null}
 
             {state.error ? (
-              <p className="px-3 pb-1 text-xs text-red-400" role="alert">
-                {state.error}
-              </p>
+              <div
+                className="flex flex-col gap-2 border-t border-red-500/20 bg-red-950/20 px-3 py-2"
+                role="alert"
+              >
+                <p className="text-xs text-red-300">{state.error}</p>
+                {lastUserTextForRetry ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="self-start border-red-500/40 text-red-200 hover:bg-red-950/40"
+                    onClick={() =>
+                      void sendUserMessage(lastUserTextForRetry, { isRetry: true })
+                    }
+                    disabled={state.isLoading}
+                  >
+                    Try again
+                  </Button>
+                ) : null}
+              </div>
             ) : null}
 
             <form
