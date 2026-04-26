@@ -2,7 +2,8 @@ import { z } from "zod";
 
 const llmOutputSchema = z.object({
   reply: z.string(),
-  escalate: z.boolean(),
+  /** Models in JSON mode sometimes omit this; default keeps replies usable without re-prompting. */
+  escalate: z.boolean().default(false),
   escalationReason: z.string().nullable().optional(),
   confidence: z.number().min(0).max(100).optional(),
   suggestedTopics: z.array(z.string()).max(6).optional(),

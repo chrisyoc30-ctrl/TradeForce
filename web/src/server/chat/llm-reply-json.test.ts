@@ -31,4 +31,14 @@ describe("parseLlmJsonOutput", () => {
     const r = parseLlmJsonOutput('Sure! {"reply":"y","escalate":true,"escalationReason":"r"}');
     expect(r.success).toBe(true);
   });
+
+  it("defaults escalate when the model omits it", () => {
+    const r = parseLlmJsonOutput(
+      JSON.stringify({ reply: "Only reply here", confidence: 80, suggestedTopics: [] }),
+    );
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.escalate).toBe(false);
+    }
+  });
 });

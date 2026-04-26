@@ -20,15 +20,20 @@ const memoryByConversation = new Map<string, ChatMessageDoc[]>();
 let indexesEnsured = false;
 
 async function getCollection(): Promise<Collection<ChatMessageDoc> | null> {
-  const db = await getMongoDb();
-  if (!db) return null;
-  const coll = db.collection<ChatMessageDoc>(COLLECTION);
-  if (!indexesEnsured) {
-    indexesEnsured = true;
-    await coll.createIndex({ conversationId: 1, timestamp: 1 }).catch(() => {});
-    await coll.createIndex({ userId: 1, timestamp: -1 }).catch(() => {});
+  try {
+    const db = await getMongoDb();
+    if (!db) return null;
+    const coll = db.collection<ChatMessageDoc>(COLLECTION);
+    if (!indexesEnsured) {
+      indexesEnsured = true;
+      await coll.createIndex({ conversationId: 1, timestamp: 1 }).catch(() => {});
+      await coll.createIndex({ userId: 1, timestamp: -1 }).catch(() => {});
+    }
+    return coll;
+  } catch (e) {
+    console.error("[chat-store] getCollection", e);
+    return null;
   }
-  return coll;
 }
 
 export function newConversationId(): string {
@@ -38,8 +43,12 @@ export function newConversationId(): string {
 export async function saveChatMessage(doc: ChatMessageDoc): Promise<void> {
   const coll = await getCollection();
   if (coll) {
-    await coll.insertOne(doc);
-    return;
+    try {
+      await coll.insertOne(doc);
+      return;
+    } catch (e) {
+      console.error("[chat-store] saveChatMessage mongo failed, using memory", e);
+    }
   }
   const list = memoryByConversation.get(doc.conversationId) ?? [];
   list.push(doc);
@@ -52,11 +61,15 @@ export async function loadRecentMessages(
 ): Promise<ChatMessageDoc[]> {
   const coll = await getCollection();
   if (coll) {
-    return coll
-      .find({ conversationId })
-      .sort({ timestamp: 1 })
-      .limit(limit)
-      .toArray();
+    try {
+      return await coll
+        .find({ conversationId })
+        .sort({ timestamp: 1 })
+        .limit(limit)
+        .toArray();
+    } catch (e) {
+      console.error("[chat-store] loadRecentMessages", e);
+    }
   }
   const list = memoryByConversation.get(conversationId) ?? [];
   return list.slice(-limit);
