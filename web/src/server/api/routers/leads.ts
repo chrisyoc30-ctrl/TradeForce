@@ -6,6 +6,100 @@ import { getApiBaseUrl } from "@/lib/api-url";
 import { checkRateLimit } from "@/lib/rate-limit";
 import type { CreateLeadResult, Lead, MatchedTradesman } from "@/types/lead";
 
+function parseNumber(value: unknown, fallback: number): number {
+  if (typeof value === "number" && !Number.isNaN(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    if (!Number.isNaN(n)) return n;
+  }
+  return fallback;
+}
+
+function asStringArrayFromJson(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item === "string" && item.trim()) {
+      out.push(item.trim());
+    }
+  }
+  return out;
+}
+
+function normalizeCreateLeadResult(raw: Record<string, unknown>): CreateLeadResult {
+  const id = String(
+    raw["id"] ?? raw["lead_id"] ?? raw["leadId"] ?? ""
+  ).trim();
+  const aiScore = parseNumber(raw["ai_score"] ?? raw["aiScore"], 0);
+  const aiGrade = String(
+    raw["ai_grade"] ?? raw["aiGrade"] ?? "B"
+  ).trim() || "B";
+  const fraud = raw["fraudRisk"];
+  const fraudRisk =
+    typeof fraud === "string" && (fraud === "low" || fraud === "medium" || fraud === "high")
+      ? fraud
+      : "low";
+  const parsedFlags = asStringArrayFromJson(raw["ai_flags"]);
+  return {
+    id,
+    success: typeof raw["success"] === "boolean" ? raw["success"] : true,
+    lead_id: String(raw["lead_id"] ?? raw["id"] ?? ""),
+    ai_grade: String(raw["ai_grade"] ?? aiGrade),
+    ai_score: aiScore,
+    ai_summary: typeof raw["ai_summary"] === "string" ? raw["ai_summary"] : undefined,
+    ai_reason: typeof raw["ai_reason"] === "string" ? raw["ai_reason"] : undefined,
+    ai_estimated_value:
+      typeof raw["ai_estimated_value"] === "string"
+        ? raw["ai_estimated_value"]
+        : undefined,
+    ai_flags: parsedFlags.length ? parsedFlags : undefined,
+    ai_scored_by_ai: typeof raw["ai_scored_by_ai"] === "boolean" ? raw["ai_scored_by_ai"] : undefined,
+    ai_model_used:
+      typeof raw["ai_model_used"] === "string" ? raw["ai_model_used"] : undefined,
+    aiScore,
+    aiGrade,
+    fraudRisk,
+    scoreBreakdown:
+      raw["scoreBreakdown"] &&
+      typeof raw["scoreBreakdown"] === "object" &&
+      raw["scoreBreakdown"] !== null
+        ? (raw["scoreBreakdown"] as CreateLeadResult["scoreBreakdown"])
+        : undefined,
+    aiSummary: typeof raw["ai_summary"] === "string" ? raw["ai_summary"] : undefined,
+    aiReason: typeof raw["ai_reason"] === "string" ? raw["ai_reason"] : undefined,
+    aiEstimatedValue:
+      typeof raw["ai_estimated_value"] === "string"
+        ? raw["ai_estimated_value"]
+        : undefined,
+    aiFlags: parsedFlags.length ? parsedFlags : undefined,
+    aiScoredByAI:
+      typeof raw["ai_scored_by_ai"] === "boolean"
+        ? raw["ai_scored_by_ai"]
+        : true,
+  };
+}
+
+/** Shared fetch for open leads (lead scoring board + router alias). */
+async function fetchUnmatchedLeadsFromApi(): Promise<Lead[]> {
+  const base = getApiBaseUrl();
+  const res = await fetch(`${base}/api/leads/unmatched`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`leads: ${res.status} ${t || res.statusText}`);
+  }
+  const data: unknown = await res.json();
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  return data as Lead[];
+}
+
 const createLeadInput = z.object({
   name: z.string().min(1),
   phone: z.string().min(1),
@@ -45,22 +139,12 @@ function trpcErrorFromHttpStatus(status: number, bodyText: string): TRPCError {
 }
 
 export const leadsRouter = createTRPCRouter({
-  // Duplicated fetch contract with `tradesman.getMatchedProjects` (same /api/leads/unmatched);
-  // both are used (lead scoring board vs available jobs / cache invalidation). Consolidate later if desired.
   getUnmatched: publicProcedure.query(async () => {
-    const base = getApiBaseUrl();
-    const res = await fetch(`${base}/api/leads/unmatched`, {
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      const t = await res.text();
-      throw new Error(`leads.getUnmatched: ${res.status} ${t || res.statusText}`);
-    }
-    const data = (await res.json()) as unknown;
-    if (!Array.isArray(data)) {
-      return [] as Lead[];
-    }
-    return data as Lead[];
+    return fetchUnmatchedLeadsFromApi();
+  }),
+
+  getAll: publicProcedure.query(async () => {
+    return fetchUnmatchedLeadsFromApi();
   }),
 
   create: publicProcedure
@@ -99,7 +183,8 @@ export const leadsRouter = createTRPCRouter({
         const t = await res.text();
         throw trpcErrorFromHttpStatus(res.status, t);
       }
-      const data = (await res.json()) as CreateLeadResult;
+      const raw = (await res.json()) as Record<string, unknown>;
+      const data: CreateLeadResult = normalizeCreateLeadResult(raw);
       if (input.email?.trim()) {
         try {
           await fetch(`${base}/api/email/lead-received`, {

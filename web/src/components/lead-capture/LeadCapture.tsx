@@ -16,17 +16,8 @@ import { leadCaptureFormSchema } from "@/lib/schemas/lead-capture";
 import {
   LEAD_CAPTURE_BUDGET_RANGE_OPTIONS,
   type ProjectComplexity,
-  type ScoreBreakdown,
   calculateQuoteEstimate,
 } from "@/lib/quote-estimate";
-
-const defaultBreakdown: ScoreBreakdown = {
-  contactQuality: 50,
-  projectValue: 50,
-  urgency: 50,
-  budget: 50,
-  timeline: 50,
-};
 
 const PROJECT_TYPE_OPTIONS: readonly { value: string; label: string }[] = [
   { value: "", label: "Select project type" },
@@ -62,9 +53,13 @@ export function LeadCapture() {
   const [f, setF] = useState(() => ({ ...emptyForm }));
   const [success, setSuccess] = useState<{
     leadId: string;
-    grade: string;
-    score: number;
-    breakdown: ScoreBreakdown;
+    aiGrade: string;
+    aiScore: number;
+    aiSummary: string;
+    aiReason: string;
+    aiEstimatedValue: string;
+    aiFlags: string[];
+    aiScoredByAI: boolean;
   } | null>(null);
   const [open, setOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
@@ -143,13 +138,20 @@ export function LeadCapture() {
           };
           create.mutate(payload, {
             onSuccess: (data) => {
+              const scored = data.aiScoredByAI !== false;
+              const est =
+                data.aiEstimatedValue ?? "Unable to estimate";
+              const sum =
+                data.aiSummary ?? "Your job is now listed.";
               setSuccess({
                 leadId: data.id,
-                grade: data.aiGrade,
-                score: data.aiScore,
-                breakdown: data.scoreBreakdown
-                  ? { ...defaultBreakdown, ...data.scoreBreakdown }
-                  : defaultBreakdown,
+                aiGrade: data.aiGrade,
+                aiScore: data.aiScore,
+                aiSummary: sum,
+                aiReason: data.aiReason?.trim() ?? "",
+                aiEstimatedValue: est,
+                aiFlags: data.aiFlags ?? data.ai_flags ?? [],
+                aiScoredByAI: scored,
               });
               setOpen(true);
               trackLeadSubmitted({
@@ -383,11 +385,14 @@ export function LeadCapture() {
         <LeadSubmissionSuccessDialog
           open={open}
           onOpenChange={setOpen}
-          aiGrade={success.grade}
-          aiScore={success.score}
-          scoreBreakdown={success.breakdown}
           leadId={success.leadId}
           onSubmitAnother={reset}
+          aiScoredByAI={success.aiScoredByAI}
+          aiGrade={success.aiGrade}
+          aiSummary={success.aiSummary}
+          aiReason={success.aiReason}
+          aiEstimatedValue={success.aiEstimatedValue}
+          aiFlags={success.aiFlags}
         />
       )}
     </div>

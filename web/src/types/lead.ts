@@ -18,6 +18,14 @@ export interface Lead {
   timeline?: string;
   aiScore?: number;
   aiGrade?: string;
+  /** Claude AI lead scoring (Mongo `ai_*` fields, exposed as camelCase in API). */
+  aiSummary?: string | null;
+  aiReason?: string | null;
+  aiEstimatedValue?: string | null;
+  aiFlags?: string[];
+  aiScoredByAI?: boolean;
+  aiModelUsed?: string | null;
+  aiScoredAt?: string | null;
   fraudRisk?: FraudRisk;
   scoreBreakdown?: ScoreBreakdown;
   matchConfidence?: number;
@@ -33,10 +41,25 @@ export interface Lead {
 
 export interface CreateLeadResult {
   id: string;
+  lead_id?: string;
+  success?: boolean;
+  ai_grade?: string;
+  ai_score?: number;
+  ai_summary?: string;
+  ai_reason?: string;
+  ai_estimated_value?: string;
+  ai_flags?: string[];
+  ai_scored_by_ai?: boolean;
+  ai_model_used?: string;
   aiScore: number;
   aiGrade: string;
   fraudRisk: FraudRisk;
   scoreBreakdown?: ScoreBreakdown;
+  aiSummary?: string;
+  aiReason?: string;
+  aiEstimatedValue?: string;
+  aiFlags?: string[];
+  aiScoredByAI?: boolean;
 }
 
 export interface MatchedTradesman {
@@ -77,4 +100,12 @@ export interface AdminMetrics {
     recentBids: Record<string, unknown>[];
   };
   aiPerformance: { gradesTracked: boolean; scoringModel: string };
+  ai_scoring?: {
+    total_scored: number;
+    grade_a_count: number;
+    grade_b_count: number;
+    grade_c_count: number;
+    average_score: number;
+    fallback_count: number;
+  };
 }

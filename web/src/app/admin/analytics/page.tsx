@@ -78,14 +78,14 @@ export default function AdminAnalyticsPage() {
         </Card>
 
         {q.data && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <MetricCard
               title="Total leads"
               value={String(q.data.leads.total)}
             />
             <MetricCard
               title="Average AI score"
-              value={q.data.leads.averageScore.toFixed(1)}
+              value={Number(q.data.leads.averageScore ?? 0).toFixed(1)}
             />
             <MetricCard
               title="Total bids"
@@ -105,6 +105,36 @@ export default function AdminAnalyticsPage() {
                 q.data.health.database ? "Mongo connected" : "Mongo offline"
               }
             />
+            {q.data.ai_scoring ? (
+              <>
+                <MetricCard
+                  title="Leads scored by Claude"
+                  value={String(q.data.ai_scoring.total_scored)}
+                />
+                <MetricCard
+                  title="Grade A (AI)"
+                  value={String(q.data.ai_scoring.grade_a_count)}
+                />
+                <MetricCard
+                  title="Grade B (AI)"
+                  value={String(q.data.ai_scoring.grade_b_count)}
+                />
+                <MetricCard
+                  title="Grade C (AI)"
+                  value={String(q.data.ai_scoring.grade_c_count)}
+                />
+                <MetricCard
+                  title="Avg. AI line score (ai_score)"
+                  value={Number(
+                    q.data.ai_scoring.average_score ?? 0
+                  ).toFixed(1)}
+                />
+                <MetricCard
+                  title="Scoring fallbacks"
+                  value={String(q.data.ai_scoring.fallback_count)}
+                />
+              </>
+            ) : null}
           </div>
         )}
 

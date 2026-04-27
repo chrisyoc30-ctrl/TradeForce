@@ -9,6 +9,8 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 
+from lead_scorer import _fallback_result, score_lead, LeadScoringResult
+
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
@@ -64,6 +66,43 @@ def _grade_from_score(score: int) -> str:
     if score >= 60:
         return "D"
     return "F"
+
+
+def _score_payload_from_data(data: dict) -> dict:
+    return {
+        "name": str(data.get("name", "") or ""),
+        "phone": str(data.get("phone", "") or ""),
+        "email": str(data.get("email", "") or ""),
+        "project_type": str(
+            data.get("projectType") or data.get("project_type", "") or ""
+        ),
+        "description": str(data.get("description", "") or ""),
+        "location": str(data.get("location", "") or ""),
+        "budget": str(data.get("budget", "") or ""),
+        "complexity": str(
+            data.get("complexity", "")
+            or data.get("projectComplexity", "")
+            or data.get("project_complexity", "")
+            or ""
+        ),
+        "timeline": str(data.get("timeline", "") or ""),
+    }
+
+
+def _apply_claude_scoring_to_document(
+    data: dict, scoring: LeadScoringResult
+) -> None:
+    data["ai_grade"] = scoring.grade
+    data["ai_score"] = int(scoring.score)
+    data["ai_summary"] = scoring.summary
+    data["ai_reason"] = scoring.reason
+    data["ai_estimated_value"] = scoring.estimated_value
+    data["ai_flags"] = list(scoring.flags)
+    data["ai_scored_by_ai"] = bool(scoring.scored_by_ai)
+    data["ai_model_used"] = scoring.model_used
+    data["ai_scored_at"] = datetime.now(timezone.utc).isoformat()
+    data["aiGrade"] = scoring.grade
+    data["aiScore"] = int(scoring.score)
 
 
 def _fraud_risk(data: dict) -> str:
@@ -177,6 +216,34 @@ def _match_confidence(lead: dict) -> int:
     return int(max(0, min(100, base + f_adj + jiggle)))
 
 
+def _normalise_lead_api_fields(out: dict) -> dict:
+    d = dict(out)
+    for snake, camel in (
+        ("ai_summary", "aiSummary"),
+        ("ai_reason", "aiReason"),
+        ("ai_estimated_value", "aiEstimatedValue"),
+        ("ai_flags", "aiFlags"),
+        ("ai_scored_by_ai", "aiScoredByAI"),
+        ("ai_model_used", "aiModelUsed"),
+        ("ai_scored_at", "aiScoredAt"),
+    ):
+        if snake in d and camel not in d:
+            d[camel] = d[snake]
+    if d.get("ai_score") is not None:
+        try:
+            d["aiScore"] = int(d["ai_score"])
+        except (TypeError, ValueError):
+            d["aiScore"] = d.get("aiScore")
+    if d.get("ai_grade") is not None and d.get("aiGrade") in (None, ""):
+        d["aiGrade"] = d.get("ai_grade")
+    if d.get("ai_score") is not None and d.get("aiScore") is None:
+        try:
+            d["aiScore"] = int(d["ai_score"])
+        except (TypeError, ValueError):
+            pass
+    return d
+
+
 def _serialise_lead(doc: dict) -> dict:
     out = dict(doc)
     oid = out.pop("_id", None)
@@ -191,7 +258,7 @@ def _serialise_lead(doc: dict) -> dict:
         pass
     if "matchConfidence" not in out and out.get("aiScore") is not None:
         out["matchConfidence"] = _match_confidence(out)
-    return out
+    return _normalise_lead_api_fields(out)
 
 
 # When MongoDB is not configured, leads/bids are stored in RAM (per process).
@@ -238,22 +305,36 @@ def _enrich_lead_for_response(data: dict) -> dict:
     data.setdefault("matched", False)
     data.setdefault("status", "open")
     data["createdAt"] = data.get("createdAt") or _now_iso()
-    fraud = _fraud_risk(data)
-    ai_score, ai_grade, breakdown = _score_lead(data)
-    data["fraudRisk"] = fraud
-    data["aiScore"] = ai_score
-    data["aiGrade"] = ai_grade
+    try:
+        scoring: LeadScoringResult = score_lead(_score_payload_from_data(data))
+    except Exception as exc:  # defensive: lead_scorer should not raise, but we never break submission
+        app.logger.exception("score_lead failed (using fallback): %s", exc)
+        scoring = _fallback_result()
+    _apply_claude_scoring_to_document(data, scoring)
+    _, _, breakdown = _score_lead(data)
+    data["fraudRisk"] = _fraud_risk(data)
     data["scoreBreakdown"] = breakdown
     return data
 
 
-def _create_lead_json_response(data: dict):
+def _create_lead_json_response(lead: dict) -> dict:
+    lid = str(lead.get("id", ""))
     return {
-        "id": data["id"],
-        "aiScore": data.get("aiScore"),
-        "aiGrade": data.get("aiGrade"),
-        "fraudRisk": data.get("fraudRisk"),
-        "scoreBreakdown": data.get("scoreBreakdown"),
+        "success": True,
+        "id": lid,
+        "lead_id": lid,
+        "ai_grade": lead.get("ai_grade"),
+        "ai_score": lead.get("ai_score"),
+        "ai_summary": lead.get("ai_summary"),
+        "ai_reason": lead.get("ai_reason"),
+        "ai_estimated_value": lead.get("ai_estimated_value"),
+        "ai_flags": list(lead.get("ai_flags") or []),
+        "ai_scored_by_ai": lead.get("ai_scored_by_ai"),
+        "ai_model_used": lead.get("ai_model_used"),
+        "aiScore": lead.get("aiScore"),
+        "aiGrade": lead.get("aiGrade"),
+        "fraudRisk": lead.get("fraudRisk"),
+        "scoreBreakdown": lead.get("scoreBreakdown"),
     }
 
 
@@ -361,6 +442,55 @@ def _serialise_bid(doc: dict) -> dict:
     return out
 
 
+def _admin_metrics_ai_scoring(leads_col) -> dict:
+    total_scored = leads_col.count_documents({"ai_scored_by_ai": True})
+    grade_a = leads_col.count_documents(
+        {
+            "$or": [
+                {"ai_grade": "A"},
+                {
+                    "ai_grade": {"$exists": False},
+                    "aiGrade": "A",
+                },
+            ]
+        }
+    )
+    grade_b = leads_col.count_documents(
+        {
+            "$or": [
+                {"ai_grade": "B"},
+                {
+                    "ai_grade": {"$exists": False},
+                    "aiGrade": "B",
+                },
+            ]
+        }
+    )
+    grade_c = leads_col.count_documents(
+        {
+            "$or": [
+                {"ai_grade": "C"},
+                {
+                    "ai_grade": {"$exists": False},
+                    "aiGrade": "C",
+                },
+            ]
+        }
+    )
+    fallback_count = leads_col.count_documents({"ai_scored_by_ai": False})
+    with_ai_score = list(leads_col.find({"ai_score": {"$exists": True, "$ne": None}}, {"ai_score": 1}))
+    ai_values = [int(d["ai_score"]) for d in with_ai_score if d.get("ai_score") is not None]
+    average_score = round(sum(ai_values) / len(ai_values), 1) if ai_values else 0.0
+    return {
+        "total_scored": total_scored,
+        "grade_a_count": grade_a,
+        "grade_b_count": grade_b,
+        "grade_c_count": grade_c,
+        "average_score": average_score,
+        "fallback_count": fallback_count,
+    }
+
+
 def _admin_metrics(database) -> dict:
     leads_col = database.leads
     bids_col = database.bids
@@ -425,6 +555,7 @@ def _admin_metrics(database) -> dict:
             "gradesTracked": True,
             "scoringModel": "heuristic_v1",
         },
+        "ai_scoring": _admin_metrics_ai_scoring(leads_col),
     }
 
 
@@ -551,11 +682,14 @@ def create_lead():
         data["matched"] = False
         data["status"] = "open"
         data["createdAt"] = data.get("createdAt") or _now_iso()
-        fraud = _fraud_risk(data)
-        ai_score, ai_grade, breakdown = _score_lead(data)
-        data["fraudRisk"] = fraud
-        data["aiScore"] = ai_score
-        data["aiGrade"] = ai_grade
+        try:
+            scoring: LeadScoringResult = score_lead(_score_payload_from_data(data))
+        except Exception as exc:  # defensive: lead_scorer should not raise, but we never break submission
+            app.logger.exception("score_lead failed (using fallback): %s", exc)
+            scoring = _fallback_result()
+        _apply_claude_scoring_to_document(data, scoring)
+        _, _, breakdown = _score_lead(data)
+        data["fraudRisk"] = _fraud_risk(data)
         data["scoreBreakdown"] = breakdown
         if data.get("estimatedQuoteMin") is not None and data.get("estimatedQuoteMax") is not None:
             pass
@@ -563,18 +697,7 @@ def create_lead():
         result = database.leads.insert_one(data)
         inserted = database.leads.find_one({"_id": result.inserted_id})
         serial = _serialise_lead(inserted)
-        return (
-            jsonify(
-                {
-                    "id": serial["id"],
-                    "aiScore": serial.get("aiScore"),
-                    "aiGrade": serial.get("aiGrade"),
-                    "fraudRisk": serial.get("fraudRisk"),
-                    "scoreBreakdown": serial.get("scoreBreakdown"),
-                }
-            ),
-            201,
-        )
+        return jsonify(_create_lead_json_response(serial)), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1003,6 +1126,29 @@ def admin_metrics_route():
     try:
         database = get_db()
         if database is None:
+            mem = _MEMORY_LEADS
+            sc_by_ai = [d for d in mem if d.get("ai_scored_by_ai") is True]
+            total_scored = len(sc_by_ai)
+            fallback_count = len([d for d in mem if d.get("ai_scored_by_ai") is False])
+            g_a = sum(
+                1
+                for d in mem
+                if (d.get("ai_grade") or d.get("aiGrade") or "") == "A"
+            )
+            g_b = sum(
+                1
+                for d in mem
+                if (d.get("ai_grade") or d.get("aiGrade") or "") == "B"
+            )
+            g_c = sum(
+                1
+                for d in mem
+                if (d.get("ai_grade") or d.get("aiGrade") or "") == "C"
+            )
+            ai_vals = [int(d["ai_score"]) for d in mem if d.get("ai_score") is not None]
+            avg_line = (
+                round(sum(ai_vals) / len(ai_vals), 1) if ai_vals else 0.0
+            )
             return (
                 jsonify(
                     {
@@ -1019,6 +1165,14 @@ def admin_metrics_route():
                         "aiPerformance": {
                             "gradesTracked": False,
                             "scoringModel": "heuristic_v1",
+                        },
+                        "ai_scoring": {
+                            "total_scored": total_scored,
+                            "grade_a_count": g_a,
+                            "grade_b_count": g_b,
+                            "grade_c_count": g_c,
+                            "average_score": avg_line,
+                            "fallback_count": fallback_count,
                         },
                     }
                 ),

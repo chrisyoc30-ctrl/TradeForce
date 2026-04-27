@@ -2,12 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Filter } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -18,21 +16,10 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/trpc/react";
 import type { Lead } from "@/types/lead";
-import { gradeClass, fraudStyles } from "@/lib/grade-styles";
-import {
-  budgetLabel,
-  defaultMatchConfidence,
-  descriptionExcerpt,
-  locationLabel,
-  parseBudgetNumber,
-  projectTypeLabel,
-  timelineLabel,
-  urgencyScore,
-} from "@/components/leads/lead-helpers";
-import { LeadDetailDialog } from "@/components/leads/lead-detail-dialog";
+import { parseBudgetNumber, urgencyScore } from "@/components/leads/lead-helpers";
+import { LeadCard } from "@/components/leads/lead-card";
 import { NotifyMeInline } from "@/components/leads/notify-me-inline";
 import { pricingCopy } from "@/lib/pricing";
-import { cn } from "@/lib/utils";
 
 type GradeFilter = "all" | "A" | "B" | "C";
 type SortKey = "score" | "budget" | "urgency";
@@ -43,35 +30,38 @@ function sortLeads(list: Lead[], key: SortKey): Lead[] {
     next.sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0));
   } else if (key === "budget") {
     next.sort(
-      (a, b) => parseBudgetNumber(b) - parseBudgetNumber(a) || (b.aiScore ?? 0) - (a.aiScore ?? 0)
+      (a, b) =>
+        parseBudgetNumber(b) - parseBudgetNumber(a) ||
+        (b.aiScore ?? 0) - (a.aiScore ?? 0)
     );
   } else {
     next.sort(
-      (a, b) => urgencyScore(b) - urgencyScore(a) || (b.aiScore ?? 0) - (a.aiScore ?? 0)
+      (a, b) =>
+        urgencyScore(b) - urgencyScore(a) ||
+        (b.aiScore ?? 0) - (a.aiScore ?? 0)
     );
   }
   return next;
 }
 
+function normalizeGrade(grade: string | undefined): string {
+  return (grade ?? "").toUpperCase();
+}
+
 export function LeadScoringBoard() {
-  const router = useRouter();
   const { data, isLoading, isError, error, refetch, isFetching } =
     trpc.leads.getUnmatched.useQuery(undefined, {
       refetchInterval: 10_000,
     });
   const [grade, setGrade] = useState<GradeFilter>("all");
   const [sort, setSort] = useState<SortKey>("score");
-  const [detail, setDetail] = useState<Lead | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const leads = useMemo(() => {
     const list = (data ?? []) as Lead[];
     const filtered =
       grade === "all"
         ? list
-        : list.filter(
-            (l) => (l.aiGrade ?? "").toUpperCase() === grade
-          );
+        : list.filter((l) => normalizeGrade(l.aiGrade) === grade);
     return sortLeads(filtered, sort);
   }, [data, grade, sort]);
 
@@ -129,10 +119,7 @@ export function LeadScoringBoard() {
           </div>
           <div className="flex w-full max-w-xs flex-col gap-1.5 sm:w-72">
             <span className="text-xs text-muted-foreground">Sort by</span>
-            <Select
-              value={sort}
-              onValueChange={(v) => setSort(v as SortKey)}
-            >
+            <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -155,7 +142,7 @@ export function LeadScoringBoard() {
         )}
 
         {isLoading && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="border-border/60">
                 <CardHeader>
@@ -190,111 +177,14 @@ export function LeadScoringBoard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {!isLoading &&
-            leads.map((lead) => {
-              const g = gradeClass(lead.aiGrade);
-              const f = fraudStyles(lead.fraudRisk);
-              return (
-                <Card
-                  key={String(lead.id)}
-                  className={cn(
-                    "group flex border-border/60 transition [transition-duration:200ms] hover:-translate-y-0.5 hover:border-amber-500/30 hover:shadow-md",
-                    g.border
-                  )}
-                >
-                  <div className="flex flex-1 flex-col p-0">
-                    <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
-                      <div
-                        className={cn(
-                          "flex h-14 w-14 shrink-0 items-center justify-center rounded-lg text-2xl font-bold",
-                          g.badge
-                        )}
-                      >
-                        {lead.aiGrade ?? "—"}
-                      </div>
-                      <div className="text-right text-sm text-muted-foreground">
-                        <div className="text-lg font-semibold tabular-nums text-foreground">
-                          {lead.aiScore ?? "—"}/100
-                        </div>
-                        <div className="text-xs">Quality</div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 space-y-3 pb-3">
-                      <p className="text-sm font-medium text-foreground">
-                        {projectTypeLabel(lead)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {locationLabel(lead)}
-                      </p>
-                      <p className="line-clamp-3 text-sm text-muted-foreground">
-                        {descriptionExcerpt(lead)}
-                      </p>
-                      <div className="space-y-1.5 text-xs text-muted-foreground">
-                        <p>
-                          <span className="text-foreground/80">Budget: </span>
-                          {budgetLabel(lead)}
-                        </p>
-                        <p>
-                          <span className="text-foreground/80">Timeline: </span>
-                          {timelineLabel(lead)}
-                        </p>
-                        <p className="flex flex-wrap items-center gap-1">
-                          <span className="text-foreground/80">Fraud: </span>
-                          <Badge
-                            variant="outline"
-                            className={cn("border", f.className)}
-                          >
-                            {f.label}
-                          </Badge>
-                        </p>
-                        <p>
-                          <span className="text-foreground/80">Match: </span>
-                          {defaultMatchConfidence(lead)}%
-                        </p>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="mt-auto flex flex-col gap-2 border-t border-border/50 pt-3 sm:flex-row">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="w-full"
-                        onClick={() => {
-                          setDetail(lead);
-                          setDetailsOpen(true);
-                        }}
-                      >
-                        View details
-                      </Button>
-                      <Link
-                        href={`/submit-quote/${encodeURIComponent(lead.id)}`}
-                        className={cn(
-                          buttonVariants(),
-                          "w-full justify-center"
-                        )}
-                      >
-                        Submit quote
-                      </Link>
-                    </CardFooter>
-                  </div>
-                </Card>
-              );
-            })}
-        </div>
+        {!isLoading && leads.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {leads.map((lead) => (
+              <LeadCard key={String(lead.id)} lead={lead} />
+            ))}
+          </div>
+        ) : null}
       </div>
-
-      <LeadDetailDialog
-        lead={detail}
-        open={detailsOpen}
-        onOpenChange={setDetailsOpen}
-        onSubmitQuote={(l) => {
-          setDetailsOpen(false);
-          router.push(`/submit-quote/${encodeURIComponent(l.id)}`);
-        }}
-        onLeadPaymentSucceeded={() => {
-          void refetch();
-        }}
-      />
     </div>
   );
 }

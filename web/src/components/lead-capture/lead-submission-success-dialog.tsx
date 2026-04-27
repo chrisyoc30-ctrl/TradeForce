@@ -12,29 +12,39 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { gradeClass, priorityMessage } from "@/lib/grade-styles";
-import type { ScoreBreakdown } from "@/lib/quote-estimate";
+import { GradeBadge, type LeadGrade } from "@/components/leads/grade-badge";
+import { AI_FLAG_LABELS } from "@/components/leads/ai-score-card";
 import { cn } from "@/lib/utils";
 
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  aiGrade: string;
-  aiScore: number;
-  scoreBreakdown: ScoreBreakdown;
-  onSubmitAnother: () => void;
-  /** When set, links to full project page with matches and bids. */
   leadId?: string | null;
+  onSubmitAnother: () => void;
+  aiScoredByAI: boolean;
+  /** When AI scored, expected A / B / C. */
+  aiGrade: string;
+  aiSummary: string;
+  aiReason: string;
+  aiEstimatedValue: string;
+  aiFlags: string[];
 };
 
-const FACTORS: { key: keyof ScoreBreakdown; label: string; weight: string }[] = [
-  { key: "contactQuality", label: "Contact quality", weight: "20%" },
-  { key: "projectValue", label: "Project value", weight: "25%" },
-  { key: "urgency", label: "Urgency", weight: "20%" },
-  { key: "budget", label: "Budget", weight: "20%" },
-  { key: "timeline", label: "Timeline", weight: "15%" },
-];
+function toLeadGrade(grade: string | undefined): LeadGrade {
+  const g = (grade ?? "C").toUpperCase();
+  if (g === "A" || g === "B" || g === "C") return g;
+  return "C";
+}
+
+function gradeMessage(grade: LeadGrade): string {
+  if (grade === "A") {
+    return "Your job description is clear and detailed. We expect strong interest from qualified Glasgow tradespeople.";
+  }
+  if (grade === "B") {
+    return "Your job has been listed. You may receive more responses if you add more detail about your timeline or budget.";
+  }
+  return "Your job has been listed, but the description could be more specific. Consider editing it to attract better quotes.";
+}
 
 function fireConfetti(grade: string) {
   const g = grade.toUpperCase();
@@ -51,19 +61,21 @@ function fireConfetti(grade: string) {
 export function LeadSubmissionSuccessDialog({
   open,
   onOpenChange,
-  aiGrade,
-  aiScore,
-  scoreBreakdown,
-  onSubmitAnother,
   leadId,
+  onSubmitAnother,
+  aiScoredByAI,
+  aiGrade,
+  aiSummary,
+  aiReason,
+  aiEstimatedValue,
+  aiFlags,
 }: Props) {
-  const g = gradeClass(aiGrade);
-  const hex = g.hex;
+  const g = toLeadGrade(aiScoredByAI ? aiGrade : "C");
   const fired = useRef(false);
 
   useEffect(() => {
     if (!open) return;
-    const t = window.setTimeout(() => onOpenChange(false), 5000);
+    const t = window.setTimeout(() => onOpenChange(false), 8000);
     return () => clearTimeout(t);
   }, [open, onOpenChange]);
 
@@ -72,62 +84,75 @@ export function LeadSubmissionSuccessDialog({
       fired.current = false;
       return;
     }
-    if (!fired.current) {
+    if (aiScoredByAI && !fired.current) {
       fireConfetti(aiGrade);
       fired.current = true;
     }
-  }, [aiGrade, open]);
+  }, [aiGrade, aiScoredByAI, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-h-[min(90vh,800px)] overflow-y-auto border-border/80 sm:max-w-md"
-        style={{ borderColor: `color-mix(in oklab, ${hex} 35%, transparent)` }}
         showCloseButton
       >
         <DialogHeader>
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 ring-2 ring-emerald-500/50">
             <Check className="h-8 w-8 text-emerald-400" strokeWidth={3} />
           </div>
-          <DialogTitle
-            className="pt-2 text-center text-2xl font-bold tracking-tight"
-            style={{ color: hex }}
-          >
-            Your Job is {aiGrade.toUpperCase()} Priority!
+          <DialogTitle className="pt-2 text-center text-2xl font-bold tracking-tight">
+            {aiScoredByAI ? "Your job has been scored" : "Your job has been received"}
           </DialogTitle>
         </DialogHeader>
-        <p className="text-balance text-center text-sm text-foreground/90">
-          Your job has been posted. We&apos;ll match it to relevant tradespeople
-          in Glasgow — you should hear from them within 24 hours. Check your
-          phone for quotes.
-        </p>
-        <p className="text-center text-sm text-muted-foreground">
-          Quality Score: {aiScore}/100
-        </p>
-        <p className="text-center text-sm text-foreground/90">
-          {priorityMessage(aiGrade)}
-        </p>
 
-        <div className="space-y-3 py-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            What drove your score
+        {!aiScoredByAI ? (
+          <p className="text-balance text-center text-sm text-foreground/90">
+            Your job has been received — we&apos;ll match it to tradespeople
+            shortly.
           </p>
-          {FACTORS.map((row) => (
-            <div key={row.key} className="space-y-1">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>
-                  {row.label}{" "}
-                  <span className="text-foreground/60">({row.weight})</span>
-                </span>
-                <span>{Math.round(scoreBreakdown[row.key] ?? 0)}</span>
-              </div>
-              <Progress
-                className="h-2"
-                value={Math.min(100, Math.max(0, scoreBreakdown[row.key] ?? 0))}
-              />
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-lg font-semibold text-foreground">
+                Your lead grade
+              </p>
+              <GradeBadge grade={g} size="md" />
             </div>
-          ))}
-        </div>
+            <p className="text-balance text-center text-sm text-foreground/90">
+              {aiSummary}
+            </p>
+            {aiReason.trim() ? (
+              <p className="text-balance text-center text-xs italic text-muted-foreground">
+                {aiReason.trim()}
+              </p>
+            ) : null}
+            <p className="rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-center text-xs text-foreground/90">
+              Est. job value: {aiEstimatedValue}
+            </p>
+            {aiFlags.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {aiFlags.map((flag) => (
+                  <span
+                    key={flag}
+                    className="inline-flex rounded-md border border-amber-500/50 bg-amber-500/15 px-2 py-0.5 text-xs text-amber-950 dark:text-amber-100"
+                  >
+                    {AI_FLAG_LABELS[flag] ?? flag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-center text-sm text-foreground/90">
+              {gradeMessage(g)}
+            </p>
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 text-left text-sm text-foreground/90">
+              <p className="font-medium text-foreground">What happens next</p>
+              <p className="mt-1 text-muted-foreground">
+                Matched tradespeople will be notified. You can expect to hear
+                from them within 24 hours. Check your phone for messages.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap sm:justify-center">
           {leadId ? (
