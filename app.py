@@ -8,8 +8,11 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
+import sys
 
 from lead_scorer import _fallback_result, score_lead, LeadScoringResult
+
+sys.stdout.flush()
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
