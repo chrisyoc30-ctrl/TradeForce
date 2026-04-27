@@ -10,7 +10,7 @@ test.describe("homeowner lead form", () => {
     await page.locator("#name").fill("E2E User");
     await page.locator("#phone").fill("07123456789");
     await page.locator("#projectType").selectOption("Plumbing");
-    await page.locator("#location").fill("G1 1AA");
+    await page.locator("#postcode").fill("G1 1AA");
     await page
       .locator("#description")
       .fill("Test leak repair under the kitchen sink, access available.");

@@ -48,7 +48,6 @@ export const leadCaptureFormSchema = z.object({
     .max(8000, "Description is too long"),
   budget: z.string().optional(),
   timeline: z.string().min(1),
-  projectComplexity: z.enum(["simple", "medium", "complex"]),
 });
 
 export type LeadCaptureFormInput = z.infer<typeof leadCaptureFormSchema>;

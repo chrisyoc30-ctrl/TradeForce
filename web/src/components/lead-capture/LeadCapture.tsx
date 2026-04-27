@@ -7,17 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { QuoteEstimator } from "@/components/leads/quote-estimator";
-import { LeadSubmissionSuccessDialog } from "@/components/lead-capture/lead-submission-success-dialog";
+import {
+  LeadCaptureSuccessPanel,
+  type LeadCaptureSuccessData,
+} from "@/components/lead-capture/lead-capture-success-panel";
 import { trpc } from "@/trpc/react";
 import { trackLeadSubmitted } from "@/lib/analytics";
 import { isLeadFormSubmittable } from "@/lib/lead-form-submittable";
 import { leadCaptureFormSchema } from "@/lib/schemas/lead-capture";
-import {
-  LEAD_CAPTURE_BUDGET_RANGE_OPTIONS,
-  type ProjectComplexity,
-  calculateQuoteEstimate,
-} from "@/lib/quote-estimate";
+import { LEAD_CAPTURE_BUDGET_RANGE_OPTIONS } from "@/lib/quote-estimate";
 
 const PROJECT_TYPE_OPTIONS: readonly { value: string; label: string }[] = [
   { value: "", label: "Select project type" },
@@ -46,37 +44,35 @@ const emptyForm = {
   description: "",
   budget: "",
   timeline: "flexible" as "this week" | "this month" | "flexible",
-  projectComplexity: "simple" as ProjectComplexity,
 };
 
 export function LeadCapture() {
   const [f, setF] = useState(() => ({ ...emptyForm }));
-  const [success, setSuccess] = useState<{
-    leadId: string;
-    aiGrade: string;
-    aiScore: number;
-    aiSummary: string;
-    aiReason: string;
-    aiEstimatedValue: string;
-    aiFlags: string[];
-    aiScoredByAI: boolean;
-  } | null>(null);
-  const [open, setOpen] = useState(false);
+  const [success, setSuccess] = useState<LeadCaptureSuccessData | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
 
   const create = trpc.leads.create.useMutation();
-
-  const estimate = calculateQuoteEstimate(
-    f.budget,
-    f.timeline,
-    f.projectComplexity
-  );
 
   const canSubmit = isLeadFormSubmittable(f);
 
   function reset() {
     setF({ ...emptyForm });
+    setSuccess(null);
     create.reset();
+  }
+
+  if (success) {
+    return (
+      <div className="mx-auto max-w-xl space-y-8 px-4 py-10 pb-28 sm:pb-10">
+        <header>
+          <h1 className="text-2xl font-semibold tracking-tight">Post a job</h1>
+        </header>
+        <LeadCaptureSuccessPanel
+          data={success}
+          onPostAnother={reset}
+        />
+      </div>
+    );
   }
 
   return (
@@ -97,8 +93,6 @@ export function LeadCapture() {
           e.preventDefault();
           if (!canSubmit) return;
           setFieldErrors({});
-          const min = estimate.min;
-          const max = estimate.max;
           const parsed = leadCaptureFormSchema.safeParse({
             name: f.name,
             phone: f.phone,
@@ -108,7 +102,6 @@ export function LeadCapture() {
             description: f.description,
             budget: f.budget,
             timeline: f.timeline,
-            projectComplexity: f.projectComplexity,
           });
           if (!parsed.success) {
             const flat = parsed.error.flatten();
@@ -132,9 +125,6 @@ export function LeadCapture() {
             description: v.description,
             budget: v.budget || undefined,
             timeline: v.timeline,
-            projectComplexity: v.projectComplexity,
-            estimatedQuoteMin: min,
-            estimatedQuoteMax: max,
           };
           create.mutate(payload, {
             onSuccess: (data) => {
@@ -153,7 +143,6 @@ export function LeadCapture() {
                 aiFlags: data.aiFlags ?? data.ai_flags ?? [],
                 aiScoredByAI: scored,
               });
-              setOpen(true);
               trackLeadSubmitted({
                 aiGrade: data.aiGrade,
                 aiScore: data.aiScore,
@@ -288,54 +277,24 @@ export function LeadCapture() {
           ) : null}
         </div>
 
-        <QuoteEstimator
-          projectType={f.projectType}
-          description={f.description}
-          budget={f.budget}
-          timeline={f.timeline}
-          complexity={f.projectComplexity}
-        />
-
-        <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="budget">Budget (optional)</Label>
-            <select
-              id="budget"
-              name="budget"
-              value={f.budget}
-              onChange={(e) => {
-                const v = (e.target as HTMLSelectElement).value;
-                setF((s) => ({ ...s, budget: v }));
-              }}
-              className={selectClassName}
-            >
-              {LEAD_CAPTURE_BUDGET_RANGE_OPTIONS.map(({ value, label }) => (
-                <option key={value || "empty"} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="projectComplexity" className="text-sm font-medium">
-              Project complexity
-            </Label>
-            <select
-              id="projectComplexity"
-              name="projectComplexity"
-              value={f.projectComplexity}
-              onChange={(e) => {
-                const v = (e.target as HTMLSelectElement)
-                  .value as ProjectComplexity;
-                setF((s) => ({ ...s, projectComplexity: v }));
-              }}
-              className={selectClassName}
-            >
-              <option value="simple">Simple (1×)</option>
-              <option value="medium">Medium (1.5×)</option>
-              <option value="complex">Complex (2×)</option>
-            </select>
-          </div>
+        <div className="grid gap-2 sm:max-w-md">
+          <Label htmlFor="budget">Budget (optional)</Label>
+          <select
+            id="budget"
+            name="budget"
+            value={f.budget}
+            onChange={(e) => {
+              const v = (e.target as HTMLSelectElement).value;
+              setF((s) => ({ ...s, budget: v }));
+            }}
+            className={selectClassName}
+          >
+            {LEAD_CAPTURE_BUDGET_RANGE_OPTIONS.map(({ value, label }) => (
+              <option key={value || "empty"} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="grid gap-2">
@@ -380,21 +339,6 @@ export function LeadCapture() {
           Submit job
         </Button>
       </form>
-
-      {success && (
-        <LeadSubmissionSuccessDialog
-          open={open}
-          onOpenChange={setOpen}
-          leadId={success.leadId}
-          onSubmitAnother={reset}
-          aiScoredByAI={success.aiScoredByAI}
-          aiGrade={success.aiGrade}
-          aiSummary={success.aiSummary}
-          aiReason={success.aiReason}
-          aiEstimatedValue={success.aiEstimatedValue}
-          aiFlags={success.aiFlags}
-        />
-      )}
     </div>
   );
 }

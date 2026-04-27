@@ -109,9 +109,6 @@ const createLeadInput = z.object({
   description: z.string().optional(),
   budget: z.union([z.number(), z.string()]).optional(),
   timeline: z.string().optional(),
-  projectComplexity: z.enum(["simple", "medium", "complex"]).optional(),
-  estimatedQuoteMin: z.number().optional(),
-  estimatedQuoteMax: z.number().optional(),
 });
 
 function trpcErrorFromHttpStatus(status: number, bodyText: string): TRPCError {
@@ -167,9 +164,6 @@ export const leadsRouter = createTRPCRouter({
             description: input.description,
             budget: input.budget,
             timeline: input.timeline,
-            projectComplexity: input.projectComplexity,
-            estimatedQuoteMin: input.estimatedQuoteMin,
-            estimatedQuoteMax: input.estimatedQuoteMax,
           }),
         });
       } catch (e) {
