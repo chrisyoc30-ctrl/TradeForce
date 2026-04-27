@@ -16,8 +16,6 @@ export interface Lead {
   postcode?: string;
   budget?: number | string;
   timeline?: string;
-  /** @deprecated optional legacy field; AI scoring supersedes homeowner-reported complexity */
-  projectComplexity?: "simple" | "medium" | "complex";
   aiScore?: number;
   aiGrade?: string;
   /** Claude AI lead scoring (Mongo `ai_*` fields, exposed as camelCase in API). */

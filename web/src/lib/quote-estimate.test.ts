@@ -1,17 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateQuoteEstimate } from "./quote-estimate";
+import { midpointForBudgetInput } from "./quote-estimate";
 
-describe("calculateQuoteEstimate", () => {
-  it("applies urgency multiplier for this week", () => {
-    const q = calculateQuoteEstimate(2000, "this week", "simple");
-    expect(q.timelineMultiplier).toBe(1.3);
-    expect(q.min).toBeLessThanOrEqual(q.max);
+describe("midpointForBudgetInput", () => {
+  it("uses band midpoint for known labels", () => {
+    const mid = midpointForBudgetInput("£1,000 – £3,000");
+    expect(mid).toBe(2_000);
   });
 
-  it("parses budget with currency symbols", () => {
-    const q = calculateQuoteEstimate("£1,500", "flexible", "medium");
-    expect(q.priorityBand).toBeDefined();
-    expect(q.mid).toBeGreaterThan(0);
+  it("parses loose numeric strings", () => {
+    expect(midpointForBudgetInput("£1,500")).toBe(1500);
   });
 });

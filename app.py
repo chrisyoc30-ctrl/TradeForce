@@ -79,12 +79,6 @@ def _score_payload_from_data(data: dict) -> dict:
         "description": str(data.get("description", "") or ""),
         "location": str(data.get("location", "") or ""),
         "budget": str(data.get("budget", "") or ""),
-        "complexity": str(
-            data.get("complexity", "")
-            or data.get("projectComplexity", "")
-            or data.get("project_complexity", "")
-            or ""
-        ),
         "timeline": str(data.get("timeline", "") or ""),
     }
 
@@ -103,6 +97,12 @@ def _apply_claude_scoring_to_document(
     data["ai_scored_at"] = datetime.now(timezone.utc).isoformat()
     data["aiGrade"] = scoring.grade
     data["aiScore"] = int(scoring.score)
+
+
+def _strip_homeowner_complexity_fields(data: dict) -> None:
+    """Homeowner-reported complexity removed; AI scoring covers this."""
+    for k in ("projectComplexity", "complexity", "project_complexity"):
+        data.pop(k, None)
 
 
 def _fraud_risk(data: dict) -> str:
@@ -144,13 +144,6 @@ def _score_lead(data: dict) -> tuple[int, str, dict]:
     value = 35
     if project_type:
         value += 20
-    complexity = (data.get("projectComplexity") or "simple")
-    if isinstance(complexity, str):
-        c = complexity.lower()
-        if c == "complex":
-            value += 12
-        elif c == "medium":
-            value += 6
     if len(desc) > 200:
         value += 30
     elif len(desc) > 80:
@@ -670,6 +663,7 @@ def create_lead():
         data["postcode"] = pc
         if not str(data.get("location") or "").strip():
             data["location"] = pc
+        _strip_homeowner_complexity_fields(data)
 
         database = get_db()
         if database is None:
