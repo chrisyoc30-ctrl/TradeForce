@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { trpc } from "@/trpc/react";
+import { persistHomeownerSessionPhone } from "@/lib/auth-nav";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,11 @@ export default function HomeownerDashboardPage() {
     { phone: phone.trim() },
     { enabled: false }
   );
+
+  useEffect(() => {
+    if (!q.isSuccess || phone.trim().length < 8) return;
+    persistHomeownerSessionPhone(phone);
+  }, [q.isSuccess, q.dataUpdatedAt, phone]);
 
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 py-16">

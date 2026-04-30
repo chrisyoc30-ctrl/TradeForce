@@ -1,15 +1,133 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { clearHomeownerSession, getLoginUrl } from "@/lib/auth-nav";
 import { cn } from "@/lib/utils";
 
 const accent = "#FF6B35";
 
+function maskSavedPhone(raw: string) {
+  const d = raw.replace(/\D/g, "");
+  if (d.length < 4) return "Homeowner account";
+  return `•••• ${d.slice(-4)}`;
+}
+
+type AuthBarProps = {
+  mobile?: boolean;
+  onNavigate?: () => void;
+  user: ReturnType<typeof useAuth>["user"];
+  sessionActive: boolean;
+};
+
+function AccountOrSignInBar({
+  mobile,
+  onNavigate,
+  user,
+  sessionActive,
+}: AuthBarProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function down(ev: MouseEvent) {
+      if (wrapRef.current?.contains(ev.target as Node)) return;
+      setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", down);
+    return () => document.removeEventListener("mousedown", down);
+  }, [menuOpen]);
+
+  if (sessionActive && user?.phone) {
+    return (
+      <div ref={wrapRef} className={mobile ? "w-full" : "relative"}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn(
+            "border-white/20 bg-white/5 font-medium hover:bg-white/10",
+            mobile && "w-full justify-between"
+          )}
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <span className={cn("truncate", mobile ? "flex-1 text-left" : "max-w-[9rem]")}>
+            {maskSavedPhone(user.phone)}
+          </span>
+          <ChevronDown className="ml-2 size-4 shrink-0 opacity-80" aria-hidden />
+        </Button>
+        {menuOpen ? (
+          <div
+            className={cn(
+              "absolute z-[60] mt-2 rounded-lg border border-white/15 bg-zinc-900 py-1 shadow-xl shadow-black/40",
+              mobile ? "right-0 left-0 min-w-[10rem]" : "right-0 min-w-[12rem]"
+            )}
+            role="menu"
+          >
+            <button
+              type="button"
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-white/10",
+                mobile && "w-full"
+              )}
+              onClick={() => {
+                clearHomeownerSession();
+                setMenuOpen(false);
+                onNavigate?.();
+              }}
+            >
+              <LogOut className="size-4 shrink-0" aria-hidden />
+              Sign out
+            </button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  const href = getLoginUrl();
+
+  if (mobile) {
+    return (
+      <Link
+        href={href}
+        className="text-foreground/90 hover:text-foreground"
+        onClick={() => {
+          onNavigate?.();
+        }}
+      >
+        Sign in
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        buttonVariants({ variant: "ghost", size: "sm" }),
+        "font-medium text-foreground hover:bg-white/10"
+      )}
+      onClick={() => {
+        onNavigate?.();
+      }}
+    >
+      Sign in
+    </Link>
+  );
+}
+
 export function HomeHeader() {
+  const auth = useAuth();
+  const { user, loading, isAuthenticated } = auth;
+
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -22,6 +140,8 @@ export function HomeHeader() {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  const sessionActive = !loading && isAuthenticated;
 
   return (
     <header
@@ -72,15 +192,10 @@ export function HomeHeader() {
           >
             For tradespeople
           </Link>
-          <Link
-            href="/homeowner-dashboard"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "font-medium text-foreground hover:bg-white/10"
-            )}
-          >
-            Sign in
-          </Link>
+          <AccountOrSignInBar
+            user={user}
+            sessionActive={sessionActive}
+          />
         </div>
         <Button
           type="button"
@@ -135,13 +250,12 @@ export function HomeHeader() {
             >
               For tradespeople
             </Link>
-            <Link
-              href="/homeowner-dashboard"
-              className="text-foreground/90 py-1"
-              onClick={() => setOpen(false)}
-            >
-              Sign in
-            </Link>
+            <AccountOrSignInBar
+              mobile
+              user={user}
+              sessionActive={sessionActive}
+              onNavigate={() => setOpen(false)}
+            />
           </nav>
         </div>
       ) : null}
