@@ -185,7 +185,7 @@ export function LeadAcceptPayment({
                 typeof matchedTradespersonId === "string"
                   ? matchedTradespersonId.trim()
                   : "";
-              let tsId =
+              const tsId =
                 typeof window !== "undefined"
                   ? (window.localStorage.getItem(TS_ID_KEY) ?? "").trim()
                   : "";
