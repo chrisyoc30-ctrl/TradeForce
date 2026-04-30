@@ -55,7 +55,7 @@ export function LeadCaptureSuccessPanel({ data, onPostAnother }: Props) {
           <Check className="h-8 w-8 text-emerald-400" strokeWidth={3} />
         </div>
         <h2 className="text-2xl font-bold tracking-tight">
-          Your job has been submitted
+          Your job has been submitted!
         </h2>
         <p className="max-w-md text-sm text-muted-foreground">
           We&apos;ve analysed your project and assigned a priority grade — here&apos;s

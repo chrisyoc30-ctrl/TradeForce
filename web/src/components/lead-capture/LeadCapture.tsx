@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  LeadCaptureSuccessPanel,
-  type LeadCaptureSuccessData,
-} from "@/components/lead-capture/lead-capture-success-panel";
+  SubmissionSuccess,
+  type SubmissionSuccessData,
+} from "@/components/lead-capture/submission-success";
 import { trpc } from "@/trpc/react";
 import { trackLeadSubmitted } from "@/lib/analytics";
 import { isLeadFormSubmittable } from "@/lib/lead-form-submittable";
@@ -49,7 +49,7 @@ const emptyForm = {
 
 export function LeadCapture() {
   const [f, setF] = useState(() => ({ ...emptyForm }));
-  const [success, setSuccess] = useState<LeadCaptureSuccessData | null>(null);
+  const [success, setSuccess] = useState<SubmissionSuccessData | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<string, string>>>({});
 
   const create = trpc.leads.create.useMutation();
@@ -68,10 +68,7 @@ export function LeadCapture() {
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Post a job</h1>
         </header>
-        <LeadCaptureSuccessPanel
-          data={success}
-          onPostAnother={reset}
-        />
+        <SubmissionSuccess data={success} onPostAnother={reset} />
       </div>
     );
   }
@@ -333,7 +330,7 @@ export function LeadCapture() {
           <Button
             type="submit"
             size="lg"
-            className="h-12 min-h-[48px] w-full rounded-lg border-0 bg-[#FF6B35] px-8 text-base font-semibold text-white shadow-md shadow-[#FF6B35]/25 transition hover:-translate-y-0.5 hover:bg-[#e85f2d] hover:shadow-lg hover:shadow-[#FF6B35]/35 active:translate-y-0 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-60 disabled:hover:translate-y-0 disabled:shadow-none"
+            className="h-12 min-h-[48px] w-full rounded-lg border-0 bg-[#FF6B35] px-8 py-[14px] text-base font-semibold text-white shadow-md shadow-[#FF6B35]/25 transition hover:-translate-y-0.5 hover:bg-[#e85f2d] hover:shadow-lg hover:shadow-[#FF6B35]/35 active:translate-y-0 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-60 disabled:hover:translate-y-0 disabled:shadow-none"
             disabled={!canSubmit || create.isPending}
           >
             {create.isPending ? (
