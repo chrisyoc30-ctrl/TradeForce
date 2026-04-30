@@ -3,12 +3,13 @@ import re
 import secrets
 import string
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 import sys
+from typing import Optional
 
 from lead_scorer import _fallback_result, score_lead, LeadScoringResult
 
@@ -222,6 +223,14 @@ def _normalise_lead_api_fields(out: dict) -> dict:
         ("ai_scored_by_ai", "aiScoredByAI"),
         ("ai_model_used", "aiModelUsed"),
         ("ai_scored_at", "aiScoredAt"),
+        ("match_status", "matchStatus"),
+        ("matched_tradesperson_id", "matchedTradespersonId"),
+        ("matched_tradesperson_name", "matchedTradespersonName"),
+        ("match_score", "matchScore"),
+        ("match_attempt", "matchAttempt"),
+        ("previously_offered_to", "previouslyOfferedTo"),
+        ("reserved_until", "reservedUntil"),
+        ("matched_at", "matchedAt"),
     ):
         if snake in d and camel not in d:
             d[camel] = d[snake]
@@ -315,7 +324,7 @@ def _enrich_lead_for_response(data: dict) -> dict:
 
 def _create_lead_json_response(lead: dict) -> dict:
     lid = str(lead.get("id", ""))
-    return {
+    out = {
         "success": True,
         "id": lid,
         "lead_id": lid,
@@ -332,6 +341,319 @@ def _create_lead_json_response(lead: dict) -> dict:
         "fraudRisk": lead.get("fraudRisk"),
         "scoreBreakdown": lead.get("scoreBreakdown"),
     }
+    ms = lead.get("match_status")
+    if ms is not None:
+        out["match_status"] = ms
+        out["matchStatus"] = ms
+    if lead.get("matched_tradesperson_name") is not None:
+        out["matched_tradesperson_name"] = lead.get("matched_tradesperson_name")
+    if lead.get("match_score") is not None:
+        out["match_score"] = lead.get("match_score")
+        out["matchScore"] = lead.get("match_score")
+    return _normalise_lead_api_fields(out)
+
+
+def _parse_reserved_until_iso(value) -> Optional[datetime]:
+    if value is None or value == "":
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    try:
+        d = datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return d.astimezone(timezone.utc)
+
+
+def _exclusive_reservation_still_open(doc: dict) -> bool:
+    ru = doc.get("reserved_until")
+    end = _parse_reserved_until_iso(ru)
+    if end is None:
+        return False
+    return datetime.now(timezone.utc) < end
+
+
+def _exclusive_bump_offer_on_tradesperson(database, tradesperson_id: str, coll_hint: Optional[str]):
+    tid = str(tradesperson_id or "").strip()
+    if not tid or database is None:
+        return
+
+    def inc_and_rate(collection, flt):
+        doc = collection.find_one(flt)
+        if not doc:
+            return
+        offers = int(doc.get("exclusive_match_offers") or 0) + 1
+        accepts = int(doc.get("exclusive_match_accepts") or 0)
+        rr = max(0.0, min(100.0, round((accepts / offers) * 100.0, 1)))
+        collection.update_one(
+            flt,
+            {"$set": {"exclusive_match_offers": offers, "response_rate": rr}},
+        )
+
+    if coll_hint == "tradesman_signups":
+        inc_and_rate(database.tradesman_signups, {"id": tid})
+        return
+    try:
+        oid = ObjectId(tid)
+    except Exception:
+        oid = None
+    if oid is not None:
+        inc_and_rate(database.tradespeople, {"_id": oid})
+    if coll_hint != "tradespeople":
+        inc_and_rate(database.tradesman_signups, {"id": tid})
+
+
+def _exclusive_bump_accept_on_tradesperson(database, tradesperson_id: str):
+    tid = str(tradesperson_id or "").strip()
+    if not tid or database is None:
+        return
+
+    def bump(coll, flt):
+        doc = coll.find_one(flt)
+        if not doc:
+            return
+        offers = int(doc.get("exclusive_match_offers") or 0)
+        accepts = int(doc.get("exclusive_match_accepts") or 0) + 1
+        if offers <= 0:
+            offers = max(1, accepts)
+        rr = max(0.0, min(100.0, round((accepts / max(1, offers)) * 100.0, 1)))
+        coll.update_one(
+            flt,
+            {"$set": {"exclusive_match_accepts": accepts, "exclusive_match_offers": offers, "response_rate": rr}},
+        )
+
+    try:
+        bump(database.tradespeople, {"_id": ObjectId(tid)})
+    except Exception:
+        pass
+    bump(database.tradesman_signups, {"id": tid})
+
+
+def _exclusive_bump_decline_on_tradesperson(database, tradesperson_id: str):
+    tid = str(tradesperson_id or "").strip()
+    if not tid or database is None:
+        return
+
+    def bump(coll, flt):
+        doc = coll.find_one(flt)
+        if not doc:
+            return
+        dec = int(doc.get("exclusive_match_declines") or 0) + 1
+        coll.update_one(flt, {"$set": {"exclusive_match_declines": dec}})
+
+    try:
+        bump(database.tradespeople, {"_id": ObjectId(tid)})
+    except Exception:
+        pass
+    bump(database.tradesman_signups, {"id": tid})
+
+
+def _exclusive_add_pending_lead(database, tradesperson_id: str, coll_hint: Optional[str], lead_id: str):
+    lid = str(lead_id or "").strip()
+    tid = str(tradesperson_id or "").strip()
+    if not lid or not tid or database is None:
+        return
+
+    def push(coll, flt):
+        coll.update_one(flt, {"$addToSet": {"pending_leads": lid}}, upsert=False)
+
+    if coll_hint == "tradesman_signups":
+        push(database.tradesman_signups, {"id": tid})
+        return
+    try:
+        push(database.tradespeople, {"_id": ObjectId(tid)})
+    except Exception:
+        pass
+    if coll_hint != "tradespeople":
+        push(database.tradesman_signups, {"id": tid})
+
+
+def _apply_exclusive_match_after_insert(database, inserted_doc: dict) -> dict:
+    """Run matcher, persist fields, notify — never raises."""
+    from notifier import notify_tradesperson_of_match
+    from smart_matcher import MatchResult, find_best_match
+
+    filt = {"_id": inserted_doc["_id"]}
+    lead_view = dict(inserted_doc)
+    lead_view["id"] = str(inserted_doc["_id"])
+    prev: list[str] = list(inserted_doc.get("previously_offered_to") or [])
+
+    try:
+        match: MatchResult = find_best_match(lead_view, database, prev)
+    except Exception as exc:
+        app.logger.exception("exclusive match failed: %s", exc)
+        database.leads.update_one(
+            filt,
+            {
+                "$set": {
+                    "match_status": "unmatched",
+                    "matched_tradesperson_id": None,
+                    "matched_tradesperson_name": None,
+                    "match_score": None,
+                    "match_attempt": 0,
+                    "previously_offered_to": prev,
+                    "reserved_until": None,
+                    "matched_at": None,
+                }
+            },
+        )
+        return database.leads.find_one(filt) or inserted_doc
+
+    if match.matched and match.tradesperson_id:
+        database.leads.update_one(
+            filt,
+            {
+                "$set": {
+                    "match_status": "reserved",
+                    "matched_tradesperson_id": match.tradesperson_id,
+                    "matched_tradesperson_name": match.tradesperson_name,
+                    "match_score": match.match_score,
+                    "match_attempt": match.attempt_number,
+                    "previously_offered_to": prev,
+                    "reserved_until": match.reserved_until,
+                    "matched_at": None,
+                    "exclusive_match_coll_hint": match.source_collection,
+                }
+            },
+        )
+        _exclusive_add_pending_lead(
+            database,
+            match.tradesperson_id,
+            match.source_collection,
+            lead_view["id"],
+        )
+        _exclusive_bump_offer_on_tradesperson(
+            database, match.tradesperson_id, match.source_collection
+        )
+        refreshed = dict(database.leads.find_one(filt) or {})
+        try:
+            notify_tradesperson_of_match(
+                {
+                    "name": match.tradesperson_name,
+                    "email": match.tradesperson_email,
+                    "phone": match.tradesperson_phone,
+                },
+                refreshed,
+                match,
+                str(match.reserved_until or ""),
+            )
+        except Exception as notify_exc:
+            app.logger.warning("exclusive notify skipped: %s", notify_exc)
+        return refreshed
+
+    database.leads.update_one(
+        filt,
+        {
+            "$set": {
+                "match_status": "unmatched",
+                "matched_tradesperson_id": None,
+                "matched_tradesperson_name": None,
+                "match_score": None,
+                "match_attempt": len(prev),
+                "previously_offered_to": prev,
+                "reserved_until": None,
+                "matched_at": None,
+            }
+        },
+    )
+    return database.leads.find_one(filt) or inserted_doc
+
+
+def _memory_apply_exclusive_match(lead_dict: dict) -> None:
+    from notifier import notify_tradesperson_of_match
+    from smart_matcher import find_best_match_in_memory
+
+    lid = str(lead_dict.get("id") or "")
+    prev = list(lead_dict.get("previously_offered_to") or [])
+    try:
+        m = find_best_match_in_memory(lead_dict, _MEMORY_TRADESPEOPLE, _MEMORY_TRADESMAN_SIGNUPS, prev)
+    except Exception:
+        lead_dict.setdefault("match_status", "unmatched")
+        return
+    if m.matched and m.tradesperson_id:
+        lead_dict.update(
+            {
+                "match_status": "reserved",
+                "matched_tradesperson_id": m.tradesperson_id,
+                "matched_tradesperson_name": m.tradesperson_name,
+                "match_score": m.match_score,
+                "match_attempt": m.attempt_number,
+                "previously_offered_to": prev,
+                "reserved_until": m.reserved_until,
+                "matched_at": None,
+            }
+        )
+        try:
+            notify_tradesperson_of_match(
+                {
+                    "name": m.tradesperson_name,
+                    "email": m.tradesperson_email,
+                    "phone": m.tradesperson_phone,
+                },
+                lead_dict,
+                m,
+                str(m.reserved_until or ""),
+            )
+        except Exception:
+            pass
+    else:
+        lead_dict.update(
+            {
+                "match_status": "unmatched",
+                "matched_tradesperson_id": None,
+                "matched_tradesperson_name": None,
+                "match_score": None,
+                "match_attempt": len(prev),
+                "previously_offered_to": prev,
+                "reserved_until": None,
+                "matched_at": None,
+            }
+        )
+
+
+def _mongo_open_board_filter():
+    return {
+        "$and": [
+            {
+                "$nor": [
+                    {"match_status": {"$in": ["reserved", "matched", "exhausted"]}},
+                ]
+            },
+            {
+                "$or": [
+                    {"matched": {"$in": [False, None]}},
+                    {"matched": {"$exists": False}},
+                ]
+            },
+        ]
+    }
+
+
+def _body_tradesperson_id() -> str:
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        body = {}
+    tid = (body.get("tradesperson_id") or body.get("tradespersonId") or "").strip()
+    if tid:
+        return tid
+    return (request.args.get("tradesperson_id") or "").strip()
+
+
+def _remove_pending_lead_all_collections(database, tradesperson_id: str, lead_id: str):
+    tid = str(tradesperson_id or "").strip()
+    lid = str(lead_id or "").strip()
+    if not tid or not lid:
+        return
+    try:
+        database.tradespeople.update_one({"_id": ObjectId(tid)}, {"$pull": {"pending_leads": lid}})
+    except Exception:
+        pass
+    database.tradesman_signups.update_one({"id": tid}, {"$pull": {"pending_leads": lid}})
 
 
 DEMO_TRADESMEN = [
@@ -576,15 +898,12 @@ def get_unmatched_leads():
             leads = [
                 d
                 for d in _MEMORY_LEADS
-                if not d.get("matched", False) and (d.get("status") or "open") != "closed"
+                if not d.get("matched", False)
+                and (d.get("status") or "open") != "closed"
+                and str(d.get("match_status") or "") not in ("reserved", "matched", "exhausted")
             ]
         else:
-            q = {
-                "$or": [
-                    {"matched": False},
-                    {"matched": {"$exists": False}},
-                ],
-            }
+            q = _mongo_open_board_filter()
             leads = list(database.leads.find(q))
         leads.sort(
             key=lambda d: (d.get("aiScore") or 0, d.get("createdAt") or ""),
@@ -673,7 +992,11 @@ def create_lead():
             lead = _enrich_lead_for_response(data)
             lead["id"] = str(uuid.uuid4())
             _MEMORY_LEADS.append(lead)
-            return jsonify(_create_lead_json_response(lead)), 201
+            try:
+                _memory_apply_exclusive_match(lead)
+            except Exception as exc_mem:
+                app.logger.warning("memory exclusive match: %s", exc_mem)
+            return jsonify(_create_lead_json_response(_serialise_lead(lead))), 201
 
         data = dict(data)
         data["matched"] = False
@@ -693,9 +1016,280 @@ def create_lead():
 
         result = database.leads.insert_one(data)
         inserted = database.leads.find_one({"_id": result.inserted_id})
-        serial = _serialise_lead(inserted)
+        try:
+            inserted = _apply_exclusive_match_after_insert(database, inserted or {})
+        except Exception as exm:
+            app.logger.exception("exclusive match insert hook: %s", exm)
+        serial = _serialise_lead(inserted or {})
         return jsonify(_create_lead_json_response(serial)), 201
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def _memory_exclusive_accept(lead: dict, tradesperson_id: str) -> tuple[bool, str]:
+    tp = str(tradesperson_id or "").strip()
+    if not tp:
+        return False, "tradesperson_id required"
+    if str(lead.get("match_status") or "") != "reserved":
+        return False, "Lead is not reserved"
+    if str(lead.get("matched_tradesperson_id") or "") != tp:
+        return False, "Not assigned to this tradesperson"
+    if not _exclusive_reservation_still_open(lead):
+        return False, "Reservation has expired"
+    lead["match_status"] = "matched"
+    lead["matched"] = True
+    lead["matched_at"] = _now_iso()
+    lead["reserved_until"] = None
+    _exclusive_bump_accept_on_tradesperson(None, tp)
+    return True, ""
+
+
+def _exclusive_accept_and_respond(database, doc: dict, tradesperson_id: str, lead_pk_filter: dict):
+    from smart_matcher import max_exclusive_attempts
+
+    tp = str(tradesperson_id or "").strip()
+    if not tp:
+        return jsonify({"error": "tradesperson_id required"}), 400
+    if database is None:
+        ok, msg = _memory_exclusive_accept(doc, tp)
+        if not ok:
+            return jsonify({"error": msg}), 400
+        return jsonify({"ok": True, "match_status": "matched"}), 200
+
+    filt = lead_pk_filter
+    lid = str(doc.get("id") or doc.get("_id") or "")
+    if str(doc.get("match_status") or "") != "reserved":
+        return jsonify({"error": "Lead is not reserved"}), 409
+    if str(doc.get("matched_tradesperson_id") or "") != tp:
+        return jsonify({"error": "Not assigned to this tradesperson"}), 403
+    if not _exclusive_reservation_still_open(doc):
+        return jsonify({"error": "Reservation has expired"}), 410
+
+    database.leads.update_one(
+        filt,
+        {
+            "$set": {
+                "match_status": "matched",
+                "matched": True,
+                "matched_at": _now_iso(),
+                "reserved_until": None,
+            }
+        },
+    )
+    _exclusive_bump_accept_on_tradesperson(database, doc.get("matched_tradesperson_id") or tp)
+    _remove_pending_lead_all_collections(database, tp, lid)
+    return jsonify({"ok": True, "match_status": "matched", "attempt_cap": max_exclusive_attempts()}), 200
+
+
+def _memory_exclusive_decline_then_rematch(lead: dict, tradesperson_id: str):
+    from notifier import notify_tradesperson_of_match
+    from smart_matcher import MatchResult, find_best_match_in_memory
+
+    tp = str(tradesperson_id or "").strip()
+    if not tp:
+        return False, "tradesperson_id required", {}
+    if str(lead.get("match_status") or "") != "reserved":
+        return False, "Lead is not reserved", {}
+    if str(lead.get("matched_tradesperson_id") or "") != tp:
+        return False, "Not assigned to this tradesperson", {}
+    prev = list(lead.get("previously_offered_to") or [])
+    if tp not in prev:
+        prev.append(tp)
+    lid = str(lead.get("id") or "")
+    old_tp = tp
+    _exclusive_bump_decline_on_tradesperson(None, old_tp)
+
+    match: MatchResult = find_best_match_in_memory(lead, _MEMORY_TRADESPEOPLE, _MEMORY_TRADESMAN_SIGNUPS, prev)
+
+    lead["previously_offered_to"] = prev
+    lead["matched_tradesperson_name"] = None
+    lead["reserved_until"] = None
+    lead["matched_tradesperson_id"] = None
+
+    if not match.matched:
+        lead["match_status"] = "exhausted"
+        lead["match_score"] = None
+        lead["match_attempt"] = len(prev)
+        out = dict(lead)
+        return True, "", out
+
+    lead.update(
+        {
+            "match_status": "reserved",
+            "matched_tradesperson_id": match.tradesperson_id,
+            "matched_tradesperson_name": match.tradesperson_name,
+            "match_score": match.match_score,
+            "match_attempt": match.attempt_number,
+            "reserved_until": match.reserved_until,
+        }
+    )
+    try:
+        notify_tradesperson_of_match(
+            {
+                "name": match.tradesperson_name,
+                "email": match.tradesperson_email,
+                "phone": match.tradesperson_phone,
+            },
+            lead,
+            match,
+            str(match.reserved_until or ""),
+        )
+    except Exception:
+        pass
+    out = dict(lead)
+    return True, "", out
+
+
+def _exclusive_decline_and_respond(database, doc: dict, tradesperson_id: str, lead_pk_filter: dict):
+    from notifier import notify_tradesperson_of_match
+    from smart_matcher import MatchResult, find_best_match
+
+    tp = str(tradesperson_id or "").strip()
+    if not tp:
+        return jsonify({"error": "tradesperson_id required"}), 400
+
+    filt = lead_pk_filter
+    lid = str(doc.get("id") or doc.get("_id") or "")
+
+    if database is None:
+        ok, msg, payload = False, "", {}
+        try:
+            ok, msg, payload = _memory_exclusive_decline_then_rematch(doc, tp)
+        except Exception as mx:
+            msg = str(mx)
+            ok = False
+        if not ok:
+            return jsonify({"error": msg or "Could not decline"}), 400
+        return jsonify({"ok": True, "lead": _serialise_lead(payload)}), 200
+
+    if str(doc.get("match_status") or "") != "reserved":
+        return jsonify({"error": "Lead is not reserved"}), 409
+    if str(doc.get("matched_tradesperson_id") or "") != tp:
+        return jsonify({"error": "Not assigned to this tradesperson"}), 403
+
+    prev = [str(x) for x in (doc.get("previously_offered_to") or [])]
+    if tp not in prev:
+        prev.append(tp)
+
+    cur_tp = doc.get("matched_tradesperson_id")
+
+    _exclusive_bump_decline_on_tradesperson(database, tp)
+    _remove_pending_lead_all_collections(database, str(cur_tp or tp), lid)
+
+    lead_view = dict(doc)
+    if not lead_view.get("id"):
+        lead_view["id"] = lid
+
+    try:
+        match: MatchResult = find_best_match(lead_view, database, prev)
+    except Exception:
+        match = MatchResult(
+            matched=False,
+            tradesperson_id=None,
+            tradesperson_name=None,
+            tradesperson_email=None,
+            tradesperson_phone=None,
+            match_score=0.0,
+            match_reason="Matching error",
+            attempt_number=len(prev),
+            reserved_until=None,
+            source_collection=None,
+        )
+
+    if match.matched:
+        database.leads.update_one(
+            filt,
+            {
+                "$set": {
+                    "match_status": "reserved",
+                    "matched_tradesperson_id": match.tradesperson_id,
+                    "matched_tradesperson_name": match.tradesperson_name,
+                    "match_score": match.match_score,
+                    "match_attempt": match.attempt_number,
+                    "previously_offered_to": prev,
+                    "reserved_until": match.reserved_until,
+                    "exclusive_match_coll_hint": match.source_collection,
+                }
+            },
+        )
+
+        _exclusive_add_pending_lead(database, match.tradesperson_id, match.source_collection, lid)
+        _exclusive_bump_offer_on_tradesperson(database, match.tradesperson_id, match.source_collection)
+
+        refreshed2 = dict(database.leads.find_one(filt) or {})
+        refreshed2.setdefault("id", lid)
+        try:
+            notify_tradesperson_of_match(
+                {
+                    "name": match.tradesperson_name,
+                    "email": match.tradesperson_email,
+                    "phone": match.tradesperson_phone,
+                },
+                refreshed2,
+                match,
+                str(match.reserved_until or ""),
+            )
+        except Exception as notify_exc:
+            app.logger.warning("exclusive re-notify skipped: %s", notify_exc)
+
+        return jsonify(
+            {
+                "ok": True,
+                "match_status": "reserved",
+                "lead": _serialise_lead(refreshed2),
+            }
+        ), 200
+
+    database.leads.update_one(
+        filt,
+        {
+            "$set": {
+                "match_status": "exhausted",
+                "matched_tradesperson_id": None,
+                "matched_tradesperson_name": None,
+                "match_score": None,
+                "reserved_until": None,
+                "match_attempt": len(prev),
+                "previously_offered_to": prev,
+                "exclusive_match_coll_hint": None,
+            }
+        },
+    )
+    out = dict(database.leads.find_one(filt) or lead_view)
+    return jsonify({"ok": True, "match_status": "exhausted", "lead": _serialise_lead(out)}), 200
+
+
+@app.route("/api/leads/<lead_id>/accept", methods=["POST"])
+def exclusive_accept_route(lead_id):
+    database = get_db()
+    if database is None:
+        doc = _memory_find_lead(str(lead_id))
+    else:
+        doc = _find_lead_doc(database, lead_id)
+    if not doc:
+        return jsonify({"error": "Lead not found"}), 404
+    filt = _lead_mongo_filter(lead_id) if database is not None else {}
+    try:
+        return _exclusive_accept_and_respond(database, doc, _body_tradesperson_id(), filt)
+    except Exception as e:
+        app.logger.exception("exclusive accept: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/leads/<lead_id>/decline", methods=["POST"])
+def exclusive_decline_route(lead_id):
+    database = get_db()
+    if database is None:
+        doc = _memory_find_lead(str(lead_id))
+    else:
+        doc = _find_lead_doc(database, lead_id)
+    if not doc:
+        return jsonify({"error": "Lead not found"}), 404
+    filt = _lead_mongo_filter(lead_id) if database is not None else {}
+    try:
+        return _exclusive_decline_and_respond(database, doc, _body_tradesperson_id(), filt)
+    except Exception as e:
+        app.logger.exception("exclusive decline: %s", e)
         return jsonify({"error": str(e)}), 500
 
 

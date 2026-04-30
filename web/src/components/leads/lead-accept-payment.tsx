@@ -17,6 +17,7 @@ import { TRADESMAN_LEAD_PRICE_GBP } from "@/lib/pricing";
 
 const NAME_KEY = "tradescore-tradesman-name";
 const EMAIL_KEY = "tradescore-tradesman-email";
+const TS_ID_KEY = "tradescore-tradesperson-id";
 
 type PayInnerProps = {
   onSucceeded: () => void;
@@ -74,9 +75,17 @@ function PayWithElement({ onSucceeded }: PayInnerProps) {
 type Props = {
   leadId: string;
   onPaymentSucceeded: () => void;
+  /** When reserved, Flask exclusive accept runs before Stripe setup. */
+  exclusiveMatchStatus?: string | null;
+  matchedTradespersonId?: string | null;
 };
 
-export function LeadAcceptPayment({ leadId, onPaymentSucceeded }: Props) {
+export function LeadAcceptPayment({
+  leadId,
+  onPaymentSucceeded,
+  exclusiveMatchStatus,
+  matchedTradespersonId,
+}: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [publishableKey, setPublishableKey] = useState<string | null>(null);
   const [tradesmanName, setTradesmanName] = useState("");
@@ -105,6 +114,8 @@ export function LeadAcceptPayment({ leadId, onPaymentSucceeded }: Props) {
       setPublishableKey(data.publishableKey);
     },
   });
+
+  const confirmExclusive = trpc.leads.confirmExclusiveAccept.useMutation();
 
   const stripePromise = useMemo(() => {
     if (!publishableKey) return null;
@@ -147,23 +158,68 @@ export function LeadAcceptPayment({ leadId, onPaymentSucceeded }: Props) {
             />
           </div>
         </div>
-        {createIntent.error && (
-          <p className="text-sm text-destructive">{createIntent.error.message}</p>
+        {(createIntent.error || confirmExclusive.error) && (
+          <p className="text-sm text-destructive">
+            {(confirmExclusive.error ?? createIntent.error)?.message}
+          </p>
         )}
         <Button
           type="button"
           variant="secondary"
           className="w-full"
-          disabled={createIntent.isPending || !canContinue}
-          onClick={() => {
-            const name = tradesmanName.trim();
-            const email = tradesmanEmail.trim();
-            if (!name || !email) return;
-            persistIdentity(name, email);
-            createIntent.mutate({ leadId, tradesmanName: name, tradesmanEmail: email });
-          }}
+          disabled={
+            createIntent.isPending ||
+            confirmExclusive.isPending ||
+            !canContinue
+          }
+          onClick={() =>
+            void (async () => {
+              const name = tradesmanName.trim();
+              const email = tradesmanEmail.trim();
+              if (!name || !email) return;
+              persistIdentity(name, email);
+              const reserve =
+                (exclusiveMatchStatus ?? "").trim().toLowerCase() ===
+                "reserved";
+              const expectId =
+                typeof matchedTradespersonId === "string"
+                  ? matchedTradespersonId.trim()
+                  : "";
+              let tsId =
+                typeof window !== "undefined"
+                  ? (window.localStorage.getItem(TS_ID_KEY) ?? "").trim()
+                  : "";
+              if (
+                reserve &&
+                expectId &&
+                (!tsId || tsId !== expectId)
+              ) {
+                alert(
+                  "This lead was assigned exclusively using a tradesperson ID. Open this link on the device where you saved your TradeScore ID, or paste your ID under Available Jobs first."
+                );
+                return;
+              }
+              try {
+                if (reserve && expectId && tsId) {
+                  await confirmExclusive.mutateAsync({
+                    leadId,
+                    tradespersonId: tsId,
+                  });
+                }
+                createIntent.mutate({
+                  leadId,
+                  tradesmanName: name,
+                  tradesmanEmail: email,
+                });
+              } catch {
+                /* surfaced via mutation error state */
+              }
+            })()
+          }
         >
-          {createIntent.isPending ? "Preparing payment…" : "Continue to payment"}
+          {createIntent.isPending || confirmExclusive.isPending
+            ? "Preparing payment…"
+            : "Continue to payment"}
         </Button>
       </div>
     );

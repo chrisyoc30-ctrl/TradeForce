@@ -260,4 +260,52 @@ export const leadsRouter = createTRPCRouter({
       if (!Array.isArray(data)) return [] as Lead[];
       return data as Lead[];
     }),
+
+  confirmExclusiveAccept: publicProcedure
+    .input(
+      z.object({
+        leadId: z.string().min(1),
+        tradespersonId: z.string().min(3),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const base = getApiBaseUrl();
+      const res = await fetch(
+        `${base}/api/leads/${encodeURIComponent(input.leadId)}/accept`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tradesperson_id: input.tradespersonId }),
+        }
+      );
+      if (res.ok) {
+        return (await res.json()) as Record<string, unknown>;
+      }
+      const t = await res.text();
+      throw trpcErrorFromHttpStatus(res.status, t);
+    }),
+
+  declineExclusive: publicProcedure
+    .input(
+      z.object({
+        leadId: z.string().min(1),
+        tradespersonId: z.string().min(3),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const base = getApiBaseUrl();
+      const res = await fetch(
+        `${base}/api/leads/${encodeURIComponent(input.leadId)}/decline`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tradesperson_id: input.tradespersonId }),
+        }
+      );
+      if (res.ok) {
+        return (await res.json()) as Record<string, unknown>;
+      }
+      const t = await res.text();
+      throw trpcErrorFromHttpStatus(res.status, t);
+    }),
 });

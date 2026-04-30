@@ -147,6 +147,8 @@ export default function AcceptLeadPage() {
           ) : (
             <LeadAcceptPayment
               leadId={leadId}
+              exclusiveMatchStatus={lead.matchStatus}
+              matchedTradespersonId={lead.matchedTradespersonId}
               onPaymentSucceeded={() => {
                 void utils.leads.getById.invalidate({ id: leadId });
               }}

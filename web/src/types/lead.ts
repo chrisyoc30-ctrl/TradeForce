@@ -37,6 +37,16 @@ export interface Lead {
   matched?: boolean;
   status?: string;
   acceptedBidId?: string;
+  /** Exclusive smart matching engine (Prompt 01). */
+  matchStatus?: string | null;
+  matchedTradespersonId?: string | null;
+  matchedTradespersonName?: string | null;
+  /** Heuristic matcher score for current reservation (distinct from homeowner AI score). */
+  matchScore?: number | null;
+  matchAttempt?: number | null;
+  previouslyOfferedTo?: string[];
+  reservedUntil?: string | null;
+  matchedAt?: string | null;
 }
 
 export interface CreateLeadResult {
