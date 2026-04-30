@@ -30,8 +30,9 @@ const PROJECT_TYPE_OPTIONS: readonly { value: string; label: string }[] = [
 ] as const;
 
 const selectClassName =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors " +
-  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 " +
+  "h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base transition-colors outline-none " +
+  "focus-visible:border-blue-700 focus-visible:ring-3 focus-visible:ring-blue-500/25 " +
+  "aria-invalid:border-destructive aria-invalid:ring-destructive/20 " +
   "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 " +
   "md:text-sm";
 
@@ -63,8 +64,8 @@ export function LeadCapture() {
 
   if (success) {
     return (
-      <div className="mx-auto max-w-xl space-y-8 px-4 py-10 pb-28 sm:pb-10">
-        <header>
+      <div className="mx-auto max-w-xl space-y-8 px-4 py-10 sm:pb-10">
+        <header className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Post a job</h1>
         </header>
         <LeadCaptureSuccessPanel
@@ -76,8 +77,8 @@ export function LeadCapture() {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-8 px-4 py-10 pb-28 sm:pb-10">
-      <header>
+    <div className="mx-auto flex min-h-[min(100dvh,56rem)] max-w-xl flex-col px-4 py-10">
+      <header className="shrink-0 space-y-1 pb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Post a job</h1>
         <p className="text-sm text-muted-foreground">
           Tell us what you need — it&apos;s{" "}
@@ -87,7 +88,7 @@ export function LeadCapture() {
       </header>
 
       <form
-        className="space-y-5"
+        className="flex flex-col gap-5 pb-[max(env(safe-area-inset-bottom),1rem)]"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
@@ -322,22 +323,36 @@ export function LeadCapture() {
             {fieldErrors._form}
           </p>
         ) : null}
-        {create.error && (
+        {create.error ? (
           <p className="text-sm text-destructive" role="alert">
             {create.error.message}
           </p>
-        )}
+        ) : null}
 
-        <Button
-          type="submit"
-          className="w-full sm:w-auto"
-          disabled={!canSubmit || create.isPending}
-        >
-          {create.isPending && (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          )}
-          Submit job
-        </Button>
+        <div className="sticky bottom-[max(env(safe-area-inset-bottom),12px)] z-40 mt-auto border-t border-border/70 bg-background/95 py-4 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-background/90 dark:shadow-black/40">
+          <Button
+            type="submit"
+            size="lg"
+            className="h-12 min-h-[48px] w-full rounded-lg border-0 bg-[#FF6B35] px-8 text-base font-semibold text-white shadow-md shadow-[#FF6B35]/25 transition hover:-translate-y-0.5 hover:bg-[#e85f2d] hover:shadow-lg hover:shadow-[#FF6B35]/35 active:translate-y-0 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-60 disabled:hover:translate-y-0 disabled:shadow-none"
+            disabled={!canSubmit || create.isPending}
+          >
+            {create.isPending ? (
+              <Loader2 className="mr-2 size-5 shrink-0 animate-spin" aria-hidden />
+            ) : null}
+            Submit your project
+          </Button>
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            By submitting you confirm your details are accurate. We&apos;ll only use them
+            to match your job — see our{" "}
+            <a
+              href="/privacy"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              Privacy Policy
+            </a>
+            .
+          </p>
+        </div>
       </form>
     </div>
   );

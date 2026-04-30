@@ -72,6 +72,15 @@ export function HomeHeader() {
           >
             For tradespeople
           </Link>
+          <Link
+            href="/homeowner-dashboard"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "font-medium text-foreground hover:bg-white/10"
+            )}
+          >
+            Sign in
+          </Link>
         </div>
         <Button
           type="button"
@@ -125,6 +134,13 @@ export function HomeHeader() {
               onClick={() => setOpen(false)}
             >
               For tradespeople
+            </Link>
+            <Link
+              href="/homeowner-dashboard"
+              className="text-foreground/90 py-1"
+              onClick={() => setOpen(false)}
+            >
+              Sign in
             </Link>
           </nav>
         </div>

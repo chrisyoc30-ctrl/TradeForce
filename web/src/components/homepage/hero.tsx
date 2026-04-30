@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Home, Sparkles, Users } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -50,21 +50,23 @@ export function HomeHero() {
             href="/lead-capture"
             className={cn(
               buttonVariants({ size: "lg" }),
-              "inline-flex min-h-11 justify-center border-0 bg-[#FF6B35] px-8 text-base font-medium text-white shadow-lg shadow-[#FF6B35]/20 hover:bg-[#e85f2d]"
+              "inline-flex min-h-11 items-center justify-center gap-2 border-0 bg-[#FF6B35] px-8 text-base font-semibold text-white shadow-lg shadow-[#FF6B35]/20 transition hover:bg-[#e85f2d]"
             )}
-            aria-label="Get quality leads — for homeowners"
+            aria-label="Post a job — free for homeowners"
           >
-            Get Quality Leads
+            <Home className="size-5 shrink-0" aria-hidden />
+            Post a Job (FREE)
           </Link>
           <Link
             href="/tradesman-signup"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
-              "inline-flex min-h-11 justify-center border-white/20 bg-white/5 px-8 text-base font-medium backdrop-blur-sm hover:bg-white/10"
+              "inline-flex min-h-11 items-center justify-center gap-2 border-white/20 bg-white/5 px-8 text-base font-semibold backdrop-blur-sm transition hover:bg-white/10"
             )}
-            aria-label="Join free trial — for tradesmen"
+            aria-label="Sign up as a Glasgow tradesperson"
           >
-            Join Free Trial
+            <Users className="size-5 shrink-0" aria-hidden />
+            Sign Up as Tradesperson
           </Link>
         </div>
 

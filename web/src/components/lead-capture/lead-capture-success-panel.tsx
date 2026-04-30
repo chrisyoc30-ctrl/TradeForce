@@ -57,6 +57,10 @@ export function LeadCaptureSuccessPanel({ data, onPostAnother }: Props) {
         <h2 className="text-2xl font-bold tracking-tight">
           Your job has been submitted
         </h2>
+        <p className="max-w-md text-sm text-muted-foreground">
+          We&apos;ve analysed your project and assigned a priority grade — here&apos;s
+          what trades see and what happens next.
+        </p>
       </div>
 
       {!scored ? (
@@ -102,12 +106,14 @@ export function LeadCaptureSuccessPanel({ data, onPostAnother }: Props) {
         </>
       )}
 
-      <div className="rounded-lg border border-border/60 bg-muted/20 p-4 text-left text-sm text-foreground/90">
+      <div className="rounded-lg border border-blue-500/25 bg-blue-500/5 p-4 text-left dark:bg-blue-500/10">
         <p className="font-medium text-foreground">What happens next</p>
-        <p className="mt-1 text-muted-foreground">
-          Matched tradespeople will be notified. Expect to hear within 24
-          hours.
-        </p>
+        <ol className="mt-3 list-inside list-decimal space-y-2 text-sm text-muted-foreground">
+          <li>Matched tradespeople are notified about your job.</li>
+          <li>Expect replies within around 24 hours.</li>
+          <li>You compare quotes and choose who to hire.</li>
+          <li>You pay the tradesperson for the work directly — TradeScore stays out of job pricing.</li>
+        </ol>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-center">

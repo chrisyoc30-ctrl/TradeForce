@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Home, Users } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,19 +26,21 @@ export function FinalCta() {
             href="/lead-capture"
             className={cn(
               buttonVariants({ size: "lg" }),
-              "min-h-11 border-0 bg-[#FF6B35] text-white hover:bg-[#e85f2d]"
+              "inline-flex min-h-11 items-center justify-center gap-2 border-0 bg-[#FF6B35] font-semibold text-white hover:bg-[#e85f2d]"
             )}
           >
-            For homeowners
+            <Home className="size-5 shrink-0" aria-hidden />
+            Post a Job (FREE)
           </Link>
           <Link
             href="/tradesman-signup"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
-              "min-h-11 border-white/20 bg-white/5 hover:bg-white/10"
+              "inline-flex min-h-11 items-center justify-center gap-2 border-white/20 bg-white/5 font-semibold hover:bg-white/10"
             )}
           >
-            For tradesmen
+            <Users className="size-5 shrink-0" aria-hidden />
+            Sign Up as Tradesperson
           </Link>
           <Link
             href="/pricing"
