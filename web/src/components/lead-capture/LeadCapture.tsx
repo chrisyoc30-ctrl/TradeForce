@@ -30,7 +30,7 @@ const PROJECT_TYPE_OPTIONS: readonly { value: string; label: string }[] = [
 ] as const;
 
 const selectClassName =
-  "h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base transition-colors outline-none " +
+  "h-10 w-full rounded-lg border border-solid border-input bg-transparent px-3 py-2 text-base transition-colors outline-none " +
   "focus-visible:border-blue-700 focus-visible:ring-3 focus-visible:ring-blue-500/25 " +
   "aria-invalid:border-destructive aria-invalid:ring-destructive/20 " +
   "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 " +
@@ -85,7 +85,7 @@ export function LeadCapture() {
       </header>
 
       <form
-        className="flex flex-col gap-5 pb-[max(env(safe-area-inset-bottom),1rem)]"
+        className="flex flex-1 flex-col gap-5 pb-[max(env(safe-area-inset-bottom),1rem)]"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
@@ -326,15 +326,19 @@ export function LeadCapture() {
           </p>
         ) : null}
 
-        <div className="sticky bottom-[max(env(safe-area-inset-bottom),12px)] z-40 mt-auto border-t border-border/70 bg-background/95 py-4 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-background/90 dark:shadow-black/40">
+        <div className="sticky bottom-[max(env(safe-area-inset-bottom),12px)] z-40 mt-auto border-t border-border/70 bg-background/95 py-4 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-background/90 dark:shadow-black/40 supports-[backdrop-filter]:backdrop-blur-md">
           <Button
             type="submit"
             size="lg"
+            aria-busy={create.isPending}
             className="h-12 min-h-[48px] w-full rounded-lg border-0 bg-[#FF6B35] px-8 py-[14px] text-base font-semibold text-white shadow-md shadow-[#FF6B35]/25 transition hover:-translate-y-0.5 hover:bg-[#e85f2d] hover:shadow-lg hover:shadow-[#FF6B35]/35 active:translate-y-0 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-60 disabled:hover:translate-y-0 disabled:shadow-none"
             disabled={!canSubmit || create.isPending}
           >
             {create.isPending ? (
-              <Loader2 className="mr-2 size-5 shrink-0 animate-spin" aria-hidden />
+              <>
+                <Loader2 className="mr-2 size-5 shrink-0 animate-spin" aria-hidden />
+                <span className="sr-only">Submitting</span>
+              </>
             ) : null}
             Submit your project
           </Button>

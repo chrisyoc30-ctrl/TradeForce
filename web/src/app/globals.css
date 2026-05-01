@@ -119,9 +119,11 @@
 }
 
 @layer base {
-  * {
-    /* Border token only — avoid universal outline rings (looks like debug boxes on labels/buttons). */
-    @apply border-border;
+  *,
+  ::before,
+  ::after {
+    /* Border color token only — do not use @apply border-border on * (can read as thick “debug” boxes on labels/buttons). */
+    border-color: var(--border);
   }
   body {
     @apply bg-background text-foreground;

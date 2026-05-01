@@ -6,7 +6,7 @@ import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { clearHomeownerSession, getLoginUrl } from "@/lib/auth-nav";
+import { clearHomeownerSession } from "@/lib/auth-nav";
 import { cn } from "@/lib/utils";
 
 const accent = "#FF6B35";
@@ -24,7 +24,7 @@ type AuthBarProps = {
   sessionActive: boolean;
 };
 
-function AccountOrSignInBar({
+function HomeownerAccountMenu({
   mobile,
   onNavigate,
   user,
@@ -43,84 +43,55 @@ function AccountOrSignInBar({
     return () => document.removeEventListener("mousedown", down);
   }, [menuOpen]);
 
-  if (sessionActive && user?.phone) {
-    return (
-      <div ref={wrapRef} className={mobile ? "w-full" : "relative"}>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className={cn(
-            "border-white/20 bg-white/5 font-medium hover:bg-white/10",
-            mobile && "w-full justify-between"
-          )}
-          aria-expanded={menuOpen}
-          aria-haspopup="menu"
-          onClick={() => setMenuOpen((o) => !o)}
-        >
-          <span className={cn("truncate", mobile ? "flex-1 text-left" : "max-w-[9rem]")}>
-            {maskSavedPhone(user.phone)}
-          </span>
-          <ChevronDown className="ml-2 size-4 shrink-0 opacity-80" aria-hidden />
-        </Button>
-        {menuOpen ? (
-          <div
-            className={cn(
-              "absolute z-[60] mt-2 rounded-lg border border-white/15 bg-zinc-900 py-1 shadow-xl shadow-black/40",
-              mobile ? "right-0 left-0 min-w-[10rem]" : "right-0 min-w-[12rem]"
-            )}
-            role="menu"
-          >
-            <button
-              type="button"
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-white/10",
-                mobile && "w-full"
-              )}
-              onClick={() => {
-                clearHomeownerSession();
-                setMenuOpen(false);
-                onNavigate?.();
-              }}
-            >
-              <LogOut className="size-4 shrink-0" aria-hidden />
-              Sign out
-            </button>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  const href = getLoginUrl();
-
-  if (mobile) {
-    return (
-      <Link
-        href={href}
-        className="text-foreground/90 hover:text-foreground"
-        onClick={() => {
-          onNavigate?.();
-        }}
-      >
-        Sign in
-      </Link>
-    );
+  if (!sessionActive || !user?.phone) {
+    return null;
   }
 
   return (
-    <Link
-      href={href}
-      className={cn(
-        buttonVariants({ variant: "ghost", size: "sm" }),
-        "font-medium text-foreground hover:bg-white/10"
-      )}
-      onClick={() => {
-        onNavigate?.();
-      }}
-    >
-      Sign in
-    </Link>
+    <div ref={wrapRef} className={mobile ? "w-full" : "relative"}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={cn(
+          "border-white/20 bg-white/5 font-medium hover:bg-white/10",
+          mobile && "w-full justify-between"
+        )}
+        aria-expanded={menuOpen}
+        aria-haspopup="menu"
+        onClick={() => setMenuOpen((o) => !o)}
+      >
+        <span className={cn("truncate", mobile ? "flex-1 text-left" : "max-w-[9rem]")}>
+          {maskSavedPhone(user.phone)}
+        </span>
+        <ChevronDown className="ml-2 size-4 shrink-0 opacity-80" aria-hidden />
+      </Button>
+      {menuOpen ? (
+        <div
+          className={cn(
+            "absolute z-[60] mt-2 rounded-lg border border-white/15 bg-zinc-900 py-1 shadow-xl shadow-black/40",
+            mobile ? "right-0 left-0 min-w-[10rem]" : "right-0 min-w-[12rem]"
+          )}
+          role="menu"
+        >
+          <button
+            type="button"
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-white/10",
+              mobile && "w-full"
+            )}
+            onClick={() => {
+              clearHomeownerSession();
+              setMenuOpen(false);
+              onNavigate?.();
+            }}
+          >
+            <LogOut className="size-4 shrink-0" aria-hidden />
+            Sign out
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -172,6 +143,14 @@ export function HomeHeader() {
           >
             FAQ
           </Link>
+          {!sessionActive ? (
+            <Link
+              href="/homeowner-dashboard"
+              className="shrink-0 transition-colors hover:text-foreground"
+            >
+              Sign In
+            </Link>
+          ) : null}
         </nav>
         <div className="hidden shrink-0 items-center gap-2 md:flex">
           <Link
@@ -192,7 +171,7 @@ export function HomeHeader() {
           >
             For tradespeople
           </Link>
-          <AccountOrSignInBar
+          <HomeownerAccountMenu
             user={user}
             sessionActive={sessionActive}
           />
@@ -230,6 +209,15 @@ export function HomeHeader() {
             >
               FAQ
             </Link>
+            {!sessionActive ? (
+              <Link
+                href="/homeowner-dashboard"
+                className="text-foreground/90"
+                onClick={() => setOpen(false)}
+              >
+                Sign In
+              </Link>
+            ) : null}
             <Link
               href="/lead-capture"
               className={cn(
@@ -250,7 +238,7 @@ export function HomeHeader() {
             >
               For tradespeople
             </Link>
-            <AccountOrSignInBar
+            <HomeownerAccountMenu
               mobile
               user={user}
               sessionActive={sessionActive}

@@ -41,8 +41,8 @@ type Props = {
 };
 
 export function LeadCaptureSuccessPanel({ data, onPostAnother }: Props) {
-  const g = toLeadGrade(data.aiScoredByAI ? data.aiGrade : "C");
   const scored = data.aiScoredByAI;
+  const g = toLeadGrade(data.aiGrade);
 
   return (
     <div
@@ -58,25 +58,41 @@ export function LeadCaptureSuccessPanel({ data, onPostAnother }: Props) {
           Your job has been submitted!
         </h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          We&apos;ve analysed your project and assigned a priority grade — here&apos;s
-          what trades see and what happens next.
+          {scored ? (
+            <>
+              We&apos;ve analysed your project and assigned a priority grade — here&apos;s
+              what trades see and what happens next.
+            </>
+          ) : (
+            <>
+              Your request is in — you&apos;ll see your AI grade here once scoring
+              finishes. Here&apos;s what happens next.
+            </>
+          )}
         </p>
       </div>
 
-      {!scored ? (
-        <p className="text-center text-sm text-foreground/90">
-          Your job has been received — we&apos;ll match it to tradespeople
-          shortly.
-        </p>
-      ) : (
+      <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            AI grade
+          </span>
+          <GradeBadge grade={g} size="md" />
+        </div>
+        {scored ? (
+          <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-foreground">Score: </span>
+            {Math.round(data.aiScore)} / 100
+          </span>
+        ) : (
+          <p className="max-w-xs text-center text-sm text-muted-foreground">
+            Full AI scoring will appear shortly — we&apos;ve queued your job.
+          </p>
+        )}
+      </div>
+
+      {scored ? (
         <>
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
-            <GradeBadge grade={g} size="md" />
-            <span className="text-sm font-medium text-muted-foreground">
-              <span className="text-foreground">Score: </span>
-              {Math.round(data.aiScore)} / 100
-            </span>
-          </div>
           <p className="whitespace-pre-wrap text-center text-sm text-foreground/90">
             {data.aiSummary}
           </p>
@@ -104,6 +120,10 @@ export function LeadCaptureSuccessPanel({ data, onPostAnother }: Props) {
             {gradeMessage(g)}
           </p>
         </>
+      ) : (
+        <p className="text-center text-sm text-foreground/90">
+          Your job has been received — we&apos;ll match it to tradespeople shortly.
+        </p>
       )}
 
       <div className="rounded-lg border border-blue-500/25 bg-blue-500/5 p-4 text-left dark:bg-blue-500/10">
