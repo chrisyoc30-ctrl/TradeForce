@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { AIChatBox } from "@/components/AIChatBox";
 import { CookieGtagInit } from "@/components/cookie-gtag-init";
+import { HomeHeader } from "@/components/homepage/home-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TRPCProvider } from "@/trpc/react";
 
@@ -45,6 +46,7 @@ export default function RootLayout({
       >
         <TRPCProvider>
           <TooltipProvider delay={0}>
+            <HomeHeader />
             {children}
             <AIChatBox />
             <CookieGtagInit />

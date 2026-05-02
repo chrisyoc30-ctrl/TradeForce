@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { FinalCta } from "@/components/homepage/final-cta";
 import { HomeFooter } from "@/components/homepage/home-footer";
-import { HomeHeader } from "@/components/homepage/home-header";
 import { HomeHero } from "@/components/homepage/hero";
 import { HowItWorks } from "@/components/homepage/how-it-works";
 import { PricingPreview } from "@/components/homepage/pricing-preview";
@@ -50,7 +49,6 @@ export default function HomePage() {
     <>
       <HomeStructuredData />
       <div className="min-h-dvh bg-zinc-950 text-foreground">
-        <HomeHeader />
         <main id="main-content">
           <HomeHero />
           <ValuePropositions />

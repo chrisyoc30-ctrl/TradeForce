@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { HomeFooter } from "@/components/homepage/home-footer";
-import { HomeHeader } from "@/components/homepage/home-header";
 import {
   postJobOrangeSolidCtaClasses,
   tradesSignupOrangeSolidCtaClasses,
@@ -10,7 +9,6 @@ import {
 export default function NotFound() {
   return (
     <div className="min-h-dvh bg-zinc-950 text-foreground">
-      <HomeHeader />
       <main
         id="main-content"
         className="mx-auto max-w-lg px-6 py-24 text-center"

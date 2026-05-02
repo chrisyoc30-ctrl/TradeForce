@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 
+import { Brandmark } from "@/components/ui/brandmark";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { clearHomeownerSession } from "@/lib/auth-nav";
@@ -12,8 +13,6 @@ import {
   tradesSignupOrangeSolidCtaClasses,
 } from "@/lib/cta-tailwind";
 import { cn } from "@/lib/utils";
-
-const accent = "#FF6B35";
 
 function maskSavedPhone(raw: string) {
   const d = raw.replace(/\D/g, "");
@@ -124,13 +123,7 @@ export function HomeHeader() {
       role="banner"
     >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-6">
-        <Link
-          href="/"
-          className="text-lg font-semibold tracking-tight text-foreground"
-          aria-label="TradeScore home"
-        >
-          Trade<span style={{ color: accent }}>Score</span>
-        </Link>
+        <Brandmark size="md" />
         <nav
           className="hidden min-w-0 flex-1 justify-center gap-4 px-2 text-sm text-muted-foreground md:flex md:gap-6"
           aria-label="Primary"

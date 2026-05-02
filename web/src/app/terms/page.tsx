@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { RenderMarkdown } from "@/components/legal/render-markdown";
 import { HomeFooter } from "@/components/homepage/home-footer";
-import { HomeHeader } from "@/components/homepage/home-header";
 import { readPublicMarkdown } from "@/lib/read-public-markdown";
 
 const siteUrl = "https://tradescore.uk";
@@ -30,7 +29,6 @@ export default async function TermsPage() {
 
   return (
     <div className="min-h-dvh bg-zinc-950 text-foreground">
-      <HomeHeader />
       <main id="main-content" className="pb-16">
         <div className="border-b border-white/5 bg-gradient-to-b from-zinc-900/80 to-zinc-950 px-4 py-10 sm:px-6 sm:py-12">
           <div className="mx-auto max-w-3xl">
