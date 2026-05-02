@@ -87,7 +87,7 @@ Use this for **go-live**, **quarterly audits**, and **after major releases**. Co
 
 ## H. Support & business SLAs
 
-- [ ] Support inbox monitored (`hello@tradescore.uk`)
+- [ ] Support inbox monitored (`support@tradescore.uk`)
 - [ ] **First response &lt; 24h** tracked in helpdesk or manual log
 - [ ] Support dashboard: open tickets, SLA risk, categories
 

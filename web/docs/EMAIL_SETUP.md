@@ -69,8 +69,8 @@ SMTP_PORT=587
 SMTP_SECURE=false
 SMTP_USER=your-server-token
 SMTP_PASS=your-server-token
-EMAIL_FROM="TradeScore <hello@tradescore.uk>"
-EMAIL_REPLY_TO=hello@tradescore.uk
+EMAIL_FROM="TradeScore <support@tradescore.uk>"
+EMAIL_REPLY_TO=support@tradescore.uk
 ```
 
 **Typical ports**
@@ -170,7 +170,7 @@ This renders every template to HTML and plain text and fails if output is unexpe
 ## 9. Checklist before go-live
 
 - [ ] SPF, DKIM, DMARC records published and verified (provider + MXToolbox or similar).
-- [ ] `From` / `Reply-To` addresses monitored (`hello@tradescore.uk`).
+- [ ] `From` / `Reply-To` addresses monitored (`support@tradescore.uk`).
 - [ ] Production API keys in secrets manager, not in Git.
 - [ ] Bounce/complaint webhook handled.
 - [ ] GDPR: privacy policy mentions transactional email; marketing has consent where required.

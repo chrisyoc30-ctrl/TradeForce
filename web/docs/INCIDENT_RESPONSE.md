@@ -143,7 +143,7 @@ We’re aware some users are having trouble completing payments. We’re investi
 ### 6.3 External — resolution
 
 ```
-The issue affecting payments is resolved. If you were charged incorrectly, email hello@tradescore.uk with your account email and we’ll help. Thank you.
+The issue affecting payments is resolved. If you were charged incorrectly, email support@tradescore.uk with your account email and we’ll help. Thank you.
 ```
 
 Align wording with **Terms** and **Support** policies.

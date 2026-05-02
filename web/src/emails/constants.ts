@@ -2,8 +2,8 @@
 export const EMAIL_BRAND = {
   name: "TradeScore",
   siteUrl: "https://tradescore.uk",
-  supportEmail: "hello@tradescore.uk",
-  supportMailto: "mailto:hello@tradescore.uk",
+  supportEmail: "support@tradescore.uk",
+  supportMailto: "mailto:support@tradescore.uk",
   accent: "#FF6B35",
   accentDark: "#e85f2d",
   text: "#18181b",

@@ -4,7 +4,7 @@ Educational **onboarding** emails for new tradespeople after signup. Templates a
 
 **Tone:** Welcoming, helpful, encouraging, professional, action-oriented.
 
-**Contact in every send:** `hello@tradescore.uk` (via template footer).
+**Contact in every send:** `support@tradescore.uk` (via template footer).
 
 ---
 
@@ -139,7 +139,7 @@ Before enabling automation in production:
 
 - [ ] **Render:** Run `npm run emails:verify` (includes all five onboarding templates).  
 - [ ] **Subjects:** A/B only after baseline works; avoid spam triggers (excessive caps, misleading “Re:”).  
-- [ ] **Links:** Every CTA and footer link resolves; `mailto:hello@tradescore.uk` opens.  
+- [ ] **Links:** Every CTA and footer link resolves; `mailto:support@tradescore.uk` opens.  
 - [ ] **Personalization:** Empty `firstName` / `tradeType` fallbacks look acceptable.  
 - [ ] **Unsubscribe:** Token URL expires correctly; user stops receiving onboarding but still gets required account mail.  
 - [ ] **Mobile:** Open HTML in Litmus / Email on Acid or send test to iPhone + Gmail app.  

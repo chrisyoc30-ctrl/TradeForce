@@ -90,7 +90,7 @@ async function sendEmail(options: SendEmailOptions) {
   //   },
   //   body: JSON.stringify({
   //     personalizations: [{ to: [{ email: options.to }] }],
-  //     from: { email: 'hello@tradescore.uk' },
+  //     from: { email: 'support@tradescore.uk' },
   //     subject: options.subject,
   //     content: [
   //       { type: 'text/plain', value: options.text },
@@ -157,7 +157,7 @@ export async function sendSupportEmail(
   const text = `Support request from ${userName}: ${message}`;
 
   return sendEmail({
-    to: 'hello@tradescore.uk',
+    to: 'support@tradescore.uk',
     subject: `Support Request from ${userName}`,
     html,
     text,

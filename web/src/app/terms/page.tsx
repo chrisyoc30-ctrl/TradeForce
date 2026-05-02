@@ -70,10 +70,10 @@ export default async function TermsPage() {
             <p className="mt-2">
               Email{" "}
               <a
-                href="mailto:hello@tradescore.uk"
+                href="mailto:support@tradescore.uk"
                 className="font-medium text-[#FF6B35] underline underline-offset-2"
               >
-                hello@tradescore.uk
+                support@tradescore.uk
               </a>{" "}
               for clarifications.
             </p>

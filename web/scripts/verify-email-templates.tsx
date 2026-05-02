@@ -96,7 +96,7 @@ async function main() {
       recipientName="Alex"
       ticketId="TS-9182"
       resolutionSummary="We’ve clarified that the first accepted lead may be free per your plan; further accepts are £25 as shown in your dashboard."
-      reopenOrFeedbackUrl={`mailto:hello@tradescore.uk`}
+      reopenOrFeedbackUrl={`mailto:support@tradescore.uk`}
     />,
   );
 

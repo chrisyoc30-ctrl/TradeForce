@@ -22,16 +22,16 @@ function formatChatSendError(e: unknown): string {
   if (e instanceof TRPCClientError) {
     // Never surface raw server messages or low-level codes to end users
     if (e.data?.code === "TIMEOUT" || e.data?.code === "CLIENT_CLOSED_REQUEST") {
-      return "That took too long. Check your connection and try again, or email hello@tradescore.uk.";
+      return "That took too long. Check your connection and try again, or email support@tradescore.uk.";
     }
-    return "We couldn’t send that message. Check your connection and try again, or email hello@tradescore.uk.";
+    return "We couldn’t send that message. Check your connection and try again, or email support@tradescore.uk.";
   }
   if (e instanceof Error && e.message) {
     if (/network|failed to fetch|load failed/i.test(e.message)) {
       return "You appear to be offline. Reconnect and try again.";
     }
   }
-  return "Something went wrong. Please try again, or email hello@tradescore.uk.";
+  return "Something went wrong. Please try again, or email support@tradescore.uk.";
 }
 
 type ChatMessage = {
@@ -477,7 +477,7 @@ export function AIChatBox() {
               >
                 New chat
               </button>
-              <span>hello@tradescore.uk</span>
+              <span>support@tradescore.uk</span>
             </div>
           </div>
         ) : null}

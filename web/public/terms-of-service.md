@@ -135,7 +135,7 @@ We may investigate and cooperate with authorities where required.
 
 11.1. **Step 1 — Direct resolution.** Homeowners and tradespeople should first try to resolve payment, scope, and quality issues **directly**, using clear written records (messages, quotes, photos).
 
-11.2. **Step 2 — Platform notice.** If a platform-related issue concerns fees, account access, or suspected misuse of the Service, contact us at **[hello@tradescore.uk](mailto:hello@tradescore.uk)** with a clear summary and evidence.
+11.2. **Step 2 — Platform notice.** If a platform-related issue concerns fees, account access, or suspected misuse of the Service, contact us at **[support@tradescore.uk](mailto:support@tradescore.uk)** with a clear summary and evidence.
 
 11.3. **Step 3 — External options.** Nothing in these Terms prevents you from pursuing **lawful rights** with regulators or courts. For **consumer** homeowners, statutory rights may apply depending on your contract with the tradesperson and applicable law.
 
@@ -209,7 +209,7 @@ We may investigate and cooperate with authorities where required.
 
 18.3. **Arbitration.** For **business users** and **tradespeople acting in a business capacity**, the parties agree that **any dispute** arising out of these Terms or the Service will be resolved by **binding arbitration** under the rules of a recognised arbitration body in the United Kingdom, **except** where law prohibits arbitration of certain claims. **Consumers** may have **non-waivable rights** to bring claims in court — this clause may not apply to you.
 
-18.4. **Informal step first.** Before commencing arbitration or litigation (where permitted), the parties agree to attempt **good-faith negotiation** for **30 days** after written notice to **[hello@tradescore.uk](mailto:hello@tradescore.uk)**.
+18.4. **Informal step first.** Before commencing arbitration or litigation (where permitted), the parties agree to attempt **good-faith negotiation** for **30 days** after written notice to **[support@tradescore.uk](mailto:support@tradescore.uk)**.
 
 ---
 
@@ -231,7 +231,7 @@ We may investigate and cooperate with authorities where required.
 
 Questions about these Terms:
 
-- **Email:** [hello@tradescore.uk](mailto:hello@tradescore.uk)  
+- **Email:** [support@tradescore.uk](mailto:support@tradescore.uk)  
 - **Post:** TradeScore, Glasgow, Scotland, United Kingdom
 
 ---

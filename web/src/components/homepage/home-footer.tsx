@@ -19,10 +19,10 @@ export function HomeFooter() {
             </p>
             <p className="mt-1">
               <a
-                href="mailto:hello@tradescore.uk"
+                href="mailto:support@tradescore.uk"
                 className="text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
               >
-                hello@tradescore.uk
+                support@tradescore.uk
               </a>
             </p>
           </div>

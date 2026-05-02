@@ -12,7 +12,7 @@ You are a **senior full-stack engineer and QA lead**. Your job is to take the Tr
 
 - **Stack target:** React, **Wouter** for routing (not Next.js App Router in the final Manus app), **tRPC** for API procedures, **TanStack Query** for client data, **Stripe** for payments, **OpenAI-compatible** LLM for chat, optional **MongoDB** for chat persistence, **@react-email** for transactional email rendering.
 - **Source of truth for asset mapping:** Our repo’s integration guide path is `web/docs/MANUS_INTEGRATION_GUIDE.md` (landing components, email file list, chat + payment routers, env vars, deployment checklist, file path quick reference).
-- **Branding & domains:** Public site and emails reference **TradeScore**, **`https://tradescore.uk`**, support **`hello@tradescore.uk`**. Keep naming, pricing copy, and legal links consistent unless we explicitly request changes.
+- **Branding & domains:** Public site and emails reference **TradeScore**, **`https://tradescore.uk`**, support **`support@tradescore.uk`**. Keep naming, pricing copy, and legal links consistent unless we explicitly request changes.
 - **Payment flow:** tRPC `payments.createLeadAcceptanceIntent` returns `clientSecret` and publishable key; **Stripe webhook** (raw body) must update lead/payment state (or our backend equivalent). **Never** expose `STRIPE_SECRET_KEY` or `OPENAI_API_KEY` to the client.
 - **Chat flow:** tRPC `chat.sendMessage` and `chat.getHistory` must match the input/output contract described in the integration guide; system prompt and escalation behaviour depend on `chat-knowledge-base` + `faq-content` + `pricing` modules copied from the reference repo.
 

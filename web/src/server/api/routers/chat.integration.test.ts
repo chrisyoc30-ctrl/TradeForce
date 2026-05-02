@@ -64,7 +64,7 @@ describe("chat.sendMessage", () => {
       message: "What is the lead price?",
     });
     expect(out.escalated).toBe(true);
-    expect(out.response).toContain("hello@tradescore.uk");
+    expect(out.response).toContain("support@tradescore.uk");
     expect(out.escalationReason).toBe("llm_unconfigured");
     expect(invokeLLM).not.toHaveBeenCalled();
   });

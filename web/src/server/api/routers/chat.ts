@@ -68,7 +68,7 @@ export const chatRouter = createTRPCRouter({
 
       if (ruleHit.escalate) {
         const ticketId = makeTicketId();
-        const text = `Thanks for reaching out — I’ve flagged this for our team (${(ruleHit.reason ?? "priority").replace(/_/g, " ")}).\n\nYour reference: **${ticketId}**. We aim to reply within 24 hours from **hello@tradescore.uk**. If you can add dates, screenshots, or the email on your account, that speeds things up.`;
+        const text = `Thanks for reaching out — I’ve flagged this for our team (${(ruleHit.reason ?? "priority").replace(/_/g, " ")}).\n\nYour reference: **${ticketId}**. We aim to reply within 24 hours from **support@tradescore.uk**. If you can add dates, screenshots, or the email on your account, that speeds things up.`;
         await safeSaveChatMessage({
           conversationId,
           userId: input.userId,
@@ -92,7 +92,7 @@ export const chatRouter = createTRPCRouter({
 
       if (!isLlmConfigured()) {
         const ticketId = makeTicketId();
-        const text = `Thanks for your message. I can’t use our automated answers right now — the assistant isn’t fully configured on this server. Please email **hello@tradescore.uk** and we’ll help you. Your reference: **${ticketId}** (include it in your email).`;
+        const text = `Thanks for your message. I can’t use our automated answers right now — the assistant isn’t fully configured on this server. Please email **support@tradescore.uk** and we’ll help you. Your reference: **${ticketId}** (include it in your email).`;
         await safeSaveChatMessage({
           conversationId,
           userId: input.userId,
@@ -140,7 +140,7 @@ export const chatRouter = createTRPCRouter({
         const parsed = parseLlmJsonOutput(raw);
         if (!parsed.success) {
           assistantText =
-            "I couldn’t quite process that. Could you rephrase in one short question? You can also email **hello@tradescore.uk** and we’ll pick it up.";
+            "I couldn’t quite process that. Could you rephrase in one short question? You can also email **support@tradescore.uk** and we’ll pick it up.";
           modelEscalate = true;
           modelReason = "llm_parse_error";
         } else {
@@ -170,7 +170,7 @@ export const chatRouter = createTRPCRouter({
       let ticketId: string | undefined;
       if (escalated) {
         ticketId = makeTicketId();
-        finalText = `${assistantText}\n\n📋 I’ve queued this for our team — reference **${ticketId}**. We’ll follow up within 24 hours from **hello@tradescore.uk**.`;
+        finalText = `${assistantText}\n\n📋 I’ve queued this for our team — reference **${ticketId}**. We’ll follow up within 24 hours from **support@tradescore.uk**.`;
       }
 
       await safeSaveChatMessage({

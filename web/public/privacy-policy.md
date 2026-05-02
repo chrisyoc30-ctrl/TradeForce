@@ -176,7 +176,7 @@ To exercise any of these rights, contact us using the details in **Section 16** 
 Some organisations must appoint a **Data Protection Officer (DPO)**. Whether TradeScore requires a DPO depends on your legal analysis and scale of processing.
 
 - If we appoint a DPO, we will publish their contact details here.  
-- Until then, **privacy and data protection enquiries** should be sent to **[hello@tradescore.uk](mailto:hello@tradescore.uk)** (or the address we publish on the site).
+- Until then, **privacy and data protection enquiries** should be sent to **[support@tradescore.uk](mailto:support@tradescore.uk)** (or the address we publish on the site).
 
 ---
 
@@ -210,7 +210,7 @@ Continued use of the Service after the effective date of changes may constitute 
 
 For **privacy questions**, **data subject requests**, or concerns about this Policy:
 
-- **Email:** [hello@tradescore.uk](mailto:hello@tradescore.uk)  
+- **Email:** [support@tradescore.uk](mailto:support@tradescore.uk)  
 - **Postal address:** TradeScore, Glasgow, Scotland, United Kingdom  
 
 Please include enough detail for us to identify your account or request (for example the email you used to register) and describe what you would like us to do.

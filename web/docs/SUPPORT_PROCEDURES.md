@@ -1,6 +1,6 @@
 # TradeScore — Support response procedures
 
-Guidelines for anyone handling **hello@tradescore.uk** (or the live support inbox). Adjust to your internal tooling (Help Scout, Zendesk, shared Gmail, etc.).
+Guidelines for anyone handling **support@tradescore.uk** (or the live support inbox). Adjust to your internal tooling (Help Scout, Zendesk, shared Gmail, etc.).
 
 ---
 
