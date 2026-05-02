@@ -2,8 +2,10 @@ import Link from "next/link";
 
 import { HomeFooter } from "@/components/homepage/home-footer";
 import { HomeHeader } from "@/components/homepage/home-header";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  postJobOrangeSolidCtaClasses,
+  tradesSignupOrangeSolidCtaClasses,
+} from "@/lib/cta-tailwind";
 
 export default function NotFound() {
   return (
@@ -18,23 +20,11 @@ export default function NotFound() {
           The page you&apos;re looking for doesn&apos;t exist or has moved.
         </p>
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row">
-          <Link
-            href="/lead-capture"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "border-0 bg-[#FF6B35] text-white hover:bg-[#e85f2d]"
-            )}
-          >
+          <Link href="/lead-capture" className={postJobOrangeSolidCtaClasses}>
             Post a job
           </Link>
-          <Link
-            href="/tradesman-signup"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "border-white/20"
-            )}
-          >
-            For tradespeople
+          <Link href="/tradesman-signup" className={tradesSignupOrangeSolidCtaClasses}>
+            Join TradeScore
           </Link>
         </div>
       </main>

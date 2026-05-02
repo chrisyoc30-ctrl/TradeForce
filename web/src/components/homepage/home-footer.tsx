@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { tradesSignupOrangeSolidCtaClasses } from "@/lib/cta-tailwind";
+
 export function HomeFooter() {
   return (
     <footer
@@ -40,8 +42,8 @@ export function HomeFooter() {
           <Link href="/lead-capture" className="hover:text-foreground">
             Post a job
           </Link>
-          <Link href="/tradesman-signup" className="hover:text-foreground">
-            For tradespeople
+          <Link href="/tradesman-signup" className={tradesSignupOrangeSolidCtaClasses}>
+            Join TradeScore
           </Link>
         </nav>
       </div>

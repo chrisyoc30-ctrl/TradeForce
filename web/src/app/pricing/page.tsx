@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  postJobOrangeSolidCtaClasses,
+  tradesSignupOrangeSolidCtaClasses,
+} from "@/lib/cta-tailwind";
 import { PricingCard } from "@/components/pricing/pricing-card";
 import { pricingCopy } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
@@ -55,16 +59,11 @@ export default function PricingPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Link href="/lead-capture" className={cn(buttonVariants({ size: "lg" }))}>
+        <Link href="/lead-capture" className={postJobOrangeSolidCtaClasses}>
           Post a job (free)
         </Link>
-        <Link
-          href="/tradesman-signup"
-          className={cn(
-            buttonVariants({ variant: "secondary", size: "lg" })
-          )}
-        >
-          Join as a trade
+        <Link href="/tradesman-signup" className={tradesSignupOrangeSolidCtaClasses}>
+          Register as a tradesperson
         </Link>
         <Link
           href="/"

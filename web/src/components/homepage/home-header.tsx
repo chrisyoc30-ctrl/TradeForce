@@ -4,9 +4,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { clearHomeownerSession } from "@/lib/auth-nav";
+import {
+  postJobOrangeSolidCtaClasses,
+  tradesSignupOrangeSolidCtaClasses,
+} from "@/lib/cta-tailwind";
 import { cn } from "@/lib/utils";
 
 const accent = "#FF6B35";
@@ -153,23 +157,11 @@ export function HomeHeader() {
           ) : null}
         </nav>
         <div className="hidden shrink-0 items-center gap-2 md:flex">
-          <Link
-            href="/lead-capture"
-            className={cn(
-              buttonVariants({ size: "sm" }),
-              "border-0 bg-[#FF6B35] text-white hover:bg-[#e85f2d]"
-            )}
-          >
+          <Link href="/lead-capture" className={postJobOrangeSolidCtaClasses}>
             Post a job
           </Link>
-          <Link
-            href="/tradesman-signup"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "border-white/20"
-            )}
-          >
-            For tradespeople
+          <Link href="/tradesman-signup" className={tradesSignupOrangeSolidCtaClasses}>
+            I&apos;m a tradesperson
           </Link>
           <HomeownerAccountMenu
             user={user}
@@ -220,23 +212,17 @@ export function HomeHeader() {
             ) : null}
             <Link
               href="/lead-capture"
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "w-full border-0 bg-[#FF6B35] text-white hover:bg-[#e85f2d]"
-              )}
+              className={cn(postJobOrangeSolidCtaClasses, "w-full")}
               onClick={() => setOpen(false)}
             >
               Post a job
             </Link>
             <Link
               href="/tradesman-signup"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "sm" }),
-                "w-full border-white/20"
-              )}
+              className={cn(tradesSignupOrangeSolidCtaClasses, "w-full")}
               onClick={() => setOpen(false)}
             >
-              For tradespeople
+              I&apos;m a tradesperson
             </Link>
             <HomeownerAccountMenu
               mobile

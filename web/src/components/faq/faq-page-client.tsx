@@ -13,6 +13,10 @@ import {
   tradesmanFaqs,
   type FaqItem,
 } from "@/lib/faq-content";
+import {
+  postJobOrangeSolidCtaClasses,
+  tradesSignupOrangeSolidCtaClasses,
+} from "@/lib/cta-tailwind";
 import { cn } from "@/lib/utils";
 
 function filterFaqs(items: FaqItem[], query: string): FaqItem[] {
@@ -114,23 +118,14 @@ export function FaqPageClient({
           you&apos;re on the tools.
         </p>
         <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap">
-          <Link
-            href="/lead-capture"
-            className={cn(
-              buttonVariants({ size: "lg" }),
-              "inline-flex justify-center border-0 bg-[#FF6B35] text-white hover:bg-[#e85f2d]"
-            )}
-          >
+          <Link href="/lead-capture" className={postJobOrangeSolidCtaClasses}>
             Post a job
           </Link>
           <Link
             href="/tradesman-signup"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "inline-flex justify-center border-white/20 bg-white/5 hover:bg-white/10"
-            )}
+            className={tradesSignupOrangeSolidCtaClasses}
           >
-            Join as a trade
+            Register as a tradesperson
           </Link>
           <Link
             href="/pricing"

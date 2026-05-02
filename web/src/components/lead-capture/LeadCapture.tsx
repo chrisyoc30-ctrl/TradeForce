@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
+import { ProminentNativeSelect } from "@/components/ui/prominent-native-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,13 +29,6 @@ const PROJECT_TYPE_OPTIONS: readonly { value: string; label: string }[] = [
   { value: "General building", label: "General building" },
   { value: "Other", label: "Other" },
 ] as const;
-
-const selectClassName =
-  "h-10 w-full rounded-lg border border-solid border-input bg-transparent px-3 py-2 text-base transition-colors outline-none " +
-  "focus-visible:border-blue-700 focus-visible:ring-3 focus-visible:ring-blue-500/25 " +
-  "aria-invalid:border-destructive aria-invalid:ring-destructive/20 " +
-  "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 " +
-  "md:text-sm";
 
 const emptyForm = {
   name: "",
@@ -226,7 +220,7 @@ export function LeadCapture() {
 
         <div className="grid gap-2">
           <Label htmlFor="projectType">Project type *</Label>
-          <select
+          <ProminentNativeSelect
             id="projectType"
             name="projectType"
             value={f.projectType}
@@ -234,7 +228,6 @@ export function LeadCapture() {
               const v = (e.target as HTMLSelectElement).value;
               setF((s) => ({ ...s, projectType: v }));
             }}
-            className={selectClassName}
             aria-invalid={Boolean(fieldErrors.projectType)}
             aria-describedby={fieldErrors.projectType ? "projectType-error" : undefined}
           >
@@ -243,7 +236,7 @@ export function LeadCapture() {
                 {label}
               </option>
             ))}
-          </select>
+          </ProminentNativeSelect>
           {fieldErrors.projectType ? (
             <p id="projectType-error" className="text-sm text-destructive" role="alert">
               {fieldErrors.projectType}
@@ -277,7 +270,7 @@ export function LeadCapture() {
 
         <div className="grid gap-2 sm:max-w-md">
           <Label htmlFor="budget">Budget (optional)</Label>
-          <select
+          <ProminentNativeSelect
             id="budget"
             name="budget"
             value={f.budget}
@@ -285,21 +278,20 @@ export function LeadCapture() {
               const v = (e.target as HTMLSelectElement).value;
               setF((s) => ({ ...s, budget: v }));
             }}
-            className={selectClassName}
           >
             {LEAD_CAPTURE_BUDGET_RANGE_OPTIONS.map(({ value, label }) => (
               <option key={value || "empty"} value={value}>
                 {label}
               </option>
             ))}
-          </select>
+          </ProminentNativeSelect>
         </div>
 
         <div className="grid gap-2">
           <Label htmlFor="timeline" className="text-sm font-medium">
             Timeline
           </Label>
-          <select
+          <ProminentNativeSelect
             id="timeline"
             name="timeline"
             value={f.timeline}
@@ -307,12 +299,11 @@ export function LeadCapture() {
               const v = (e.target as HTMLSelectElement).value as (typeof f)["timeline"];
               setF((s) => ({ ...s, timeline: v }));
             }}
-            className={selectClassName}
           >
             <option value="this week">This week</option>
             <option value="this month">This month</option>
             <option value="flexible">Flexible</option>
-          </select>
+          </ProminentNativeSelect>
         </div>
 
         {fieldErrors._form ? (

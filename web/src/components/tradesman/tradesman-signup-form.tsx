@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, Copy, Loader2 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ProminentNativeSelect } from "@/components/ui/prominent-native-select";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -249,12 +250,11 @@ export function TradesmanSignupForm() {
       </div>
       <div className="grid gap-2">
         <Label htmlFor="ts-trade">Trade type *</Label>
-        <select
+        <ProminentNativeSelect
           id="ts-trade"
           value={tradeType}
           onChange={(e) => setTradeType(e.target.value)}
           disabled={pending}
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm"
           aria-invalid={Boolean(errors.trade_type)}
           aria-describedby={errors.trade_type ? "ts-trade-err" : undefined}
         >
@@ -264,7 +264,7 @@ export function TradesmanSignupForm() {
               {t}
             </option>
           ))}
-        </select>
+        </ProminentNativeSelect>
         {errors.trade_type ? (
           <p
             id="ts-trade-err"
@@ -347,7 +347,11 @@ export function TradesmanSignupForm() {
           {formErr}
         </p>
       ) : null}
-      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+      <Button
+        type="submit"
+        disabled={pending}
+        className="inline-flex w-full min-h-[56px] items-center justify-center border-2 border-orange-500 bg-orange-500 px-8 py-4 text-base font-bold text-white shadow-md transition-all hover:bg-orange-600 hover:shadow-lg focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-500/30 sm:w-auto"
+      >
         {pending ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin" />
