@@ -1,19 +1,28 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
 interface BrandmarkProps {
-  /** Size variant. md is the default header size. lg is for hero/footer. */
+  /** Size variant. md is default header size. lg is for hero/footer. */
   size?: "md" | "lg";
-  /** Additional class names to apply to the link wrapper. */
+  /** Additional class names. */
   className?: string;
-  /** Whether to render as a link (true) or static text (false). Default true. */
+  /** Whether to render as a link (true) or static image (false). Default true. */
   asLink?: boolean;
 }
 
 const sizeClasses = {
-  md: "text-2xl sm:text-3xl",
-  lg: "text-4xl sm:text-5xl",
+  md: {
+    width: 180,
+    height: 48,
+    containerClass: "h-10 sm:h-12 w-auto",
+  },
+  lg: {
+    width: 320,
+    height: 88,
+    containerClass: "h-20 sm:h-24 w-auto",
+  },
 } as const;
 
 export function Brandmark({
@@ -21,16 +30,17 @@ export function Brandmark({
   className,
   asLink = true,
 }: BrandmarkProps) {
+  const dims = sizeClasses[size];
+
   const content = (
-    <span
-      className={cn(
-        "font-extrabold tracking-tight leading-none",
-        sizeClasses[size],
-        className,
-      )}
-    >
-      Trade<span className="text-orange-500">Score</span>
-    </span>
+    <Image
+      src="/tradescore-logo.png"
+      alt="TradeScore"
+      width={dims.width}
+      height={dims.height}
+      priority={size === "md"}
+      className={cn(dims.containerClass, "object-contain", className)}
+    />
   );
 
   if (!asLink) {

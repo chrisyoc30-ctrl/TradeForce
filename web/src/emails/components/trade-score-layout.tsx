@@ -5,6 +5,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Section,
@@ -30,6 +31,7 @@ export function TradeScoreLayout({
 }: TradeScoreLayoutProps) {
   const showMarketingLinks =
     Boolean(marketingPreferencesUrl) || Boolean(marketingUnsubscribeUrl);
+  const logoUrl = `${EMAIL_BRAND.siteUrl.replace(/\/$/, "")}/tradescore-logo.png`;
 
   return (
     <Html lang="en">
@@ -53,20 +55,23 @@ export function TradeScoreLayout({
             style={{
               textAlign: "center",
               marginBottom: "20px",
+              padding: "16px 24px",
+              backgroundColor: "#ffffff",
+              borderBottom: "1px solid #e5e7eb",
             }}
           >
-            <Text
+            <Img
+              src={logoUrl}
+              alt="TradeScore"
+              width={200}
               style={{
-                margin: 0,
-                fontSize: "22px",
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-                color: EMAIL_BRAND.text,
+                display: "block",
+                margin: "0 auto",
+                maxWidth: "200px",
+                height: "auto",
+                border: "0",
               }}
-            >
-              <span style={{ color: EMAIL_BRAND.accent }}>Trade</span>
-              Score
-            </Text>
+            />
           </Section>
 
           <Section
