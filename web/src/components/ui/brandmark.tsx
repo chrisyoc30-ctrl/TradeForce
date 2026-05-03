@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface BrandmarkProps {
-  /** Size variant. md is default header size. lg is for hero/footer. */
+  /** Size variant. md (header) and lg (footer) use the same logo dimensions. */
   size?: "md" | "lg";
   /** Additional class names. */
   className?: string;
@@ -12,20 +12,17 @@ interface BrandmarkProps {
   asLink?: boolean;
 }
 
+/** Header and footer share the same logo scale for consistent branding. */
+const brandmarkLogoSize = {
+  width: 440,
+  height: 120,
+  containerClass:
+    "h-28 min-h-28 w-auto sm:h-32 sm:min-h-32 md:h-36 md:min-h-36",
+} as const;
+
 const sizeClasses = {
-  md: {
-    width: 320,
-    height: 88,
-    containerClass:
-      "h-[3.75rem] min-h-[3.75rem] w-auto max-h-[3.75rem] sm:h-16 sm:min-h-16 sm:max-h-16 md:h-[4.25rem] md:min-h-[4.25rem] md:max-h-[4.25rem]",
-  },
-  lg: {
-    /** Footer & hero-adjacent blocks */
-    width: 440,
-    height: 120,
-    containerClass:
-      "h-28 min-h-28 w-auto sm:h-32 sm:min-h-32 md:h-36 md:min-h-36",
-  },
+  md: brandmarkLogoSize,
+  lg: brandmarkLogoSize,
 } as const;
 
 export function Brandmark({

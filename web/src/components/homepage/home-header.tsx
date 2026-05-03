@@ -122,7 +122,7 @@ export function HomeHeader() {
       className="sticky top-0 z-50 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md"
       role="banner"
     >
-      <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:min-h-[4.25rem] sm:px-6">
+      <div className="mx-auto flex min-h-28 max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:min-h-32 md:min-h-36 md:gap-4 sm:px-6">
         <Brandmark size="md" />
         <nav
           className="hidden min-w-0 flex-1 justify-center gap-4 px-2 text-sm text-muted-foreground md:flex md:gap-6"
