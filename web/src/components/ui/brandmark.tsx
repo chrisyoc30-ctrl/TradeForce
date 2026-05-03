@@ -14,14 +14,17 @@ interface BrandmarkProps {
 
 const sizeClasses = {
   md: {
-    width: 180,
-    height: 48,
-    containerClass: "h-10 sm:h-12 w-auto",
-  },
-  lg: {
     width: 320,
     height: 88,
-    containerClass: "h-20 sm:h-24 w-auto",
+    containerClass:
+      "h-[3.75rem] min-h-[3.75rem] w-auto max-h-[3.75rem] sm:h-16 sm:min-h-16 sm:max-h-16 md:h-[4.25rem] md:min-h-[4.25rem] md:max-h-[4.25rem]",
+  },
+  lg: {
+    /** Footer & hero-adjacent blocks */
+    width: 440,
+    height: 120,
+    containerClass:
+      "h-28 min-h-28 w-auto sm:h-32 sm:min-h-32 md:h-36 md:min-h-36",
   },
 } as const;
 
