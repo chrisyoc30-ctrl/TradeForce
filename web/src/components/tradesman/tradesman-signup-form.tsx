@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Copy, Loader2 } from "lucide-react";
+import { BadgeCheck, Check, Copy, Loader2 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ProminentNativeSelect } from "@/components/ui/prominent-native-select";
@@ -44,6 +44,11 @@ const emptyErrors = (): Record<FieldErrorKey, string> => ({
   postcode: "",
 });
 
+type SignupSuccessVerification = {
+  verified: boolean;
+  companyName: string | null;
+};
+
 export function TradesmanSignupForm() {
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -57,6 +62,8 @@ export function TradesmanSignupForm() {
   const [formErr, setFormErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [chVerification, setChVerification] =
+    useState<SignupSuccessVerification | null>(null);
   const [idCopied, setIdCopied] = useState(false);
 
   function validate(): boolean {
@@ -139,6 +146,30 @@ export function TradesmanSignupForm() {
             )}
           </Button>
         </div>
+        {chVerification?.verified ? (
+          <div className="mt-6 flex items-center gap-3 rounded-lg border-2 border-green-500 bg-green-50 p-4 dark:border-green-500 dark:bg-green-950/50">
+            <BadgeCheck className="h-6 w-6 shrink-0 text-green-600 dark:text-green-400" />
+            <div>
+              <p className="font-semibold text-green-900 dark:text-green-100">
+                Verified Business
+              </p>
+              <p className="text-sm text-green-700 dark:text-green-300/90">
+                Matched to{" "}
+                {(chVerification.companyName ?? "").trim() || "your business"}{" "}
+                on Companies House
+              </p>
+            </div>
+          </div>
+        ) : null}
+        {chVerification && chVerification.verified === false ? (
+          <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-600/60 dark:bg-amber-950/40">
+            <p className="text-sm text-amber-900 dark:text-amber-100/90">
+              We couldn&apos;t automatically verify your business name on Companies
+              House. This won&apos;t affect your account — you can still receive leads.
+              Verified badge can be added later by support@tradescore.uk if needed.
+            </p>
+          </div>
+        ) : null}
         <p className="text-sm text-muted-foreground">
           <span className="text-foreground/90">Copy and save it somewhere safe</span> — you
           will need it to open{" "}
@@ -190,6 +221,10 @@ export function TradesmanSignupForm() {
             error?: string;
             success?: boolean;
             tradesperson_id?: string;
+            ch_verified?: boolean;
+            ch_company_name?: string | null;
+            ch_company_number?: string | null;
+            ch_company_status?: string | null;
           };
           if (res.status === 409) {
             setFormErr(
@@ -203,6 +238,19 @@ export function TradesmanSignupForm() {
           }
           if (j.success && j.tradesperson_id) {
             setSuccessId(j.tradesperson_id);
+            if (j.ch_verified === true) {
+              setChVerification({
+                verified: true,
+                companyName:
+                  typeof j.ch_company_name === "string"
+                    ? j.ch_company_name
+                    : null,
+              });
+            } else if (j.ch_verified === false) {
+              setChVerification({ verified: false, companyName: null });
+            } else {
+              setChVerification(null);
+            }
             return;
           }
           setFormErr("Unexpected response from server");
