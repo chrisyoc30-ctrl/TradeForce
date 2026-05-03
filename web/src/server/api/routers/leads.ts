@@ -180,12 +180,18 @@ export const leadsRouter = createTRPCRouter({
       const raw = (await res.json()) as Record<string, unknown>;
       const data: CreateLeadResult = normalizeCreateLeadResult(raw);
       if (input.email?.trim()) {
+        const leadName = input.name.trim();
+        const firstWord = leadName.split(/\s+/).filter(Boolean)[0] ?? "";
         try {
           await fetch(`${base}/api/email/lead-received`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               to: input.email.trim(),
+              subject: "Your TradeScore job has been received",
+              first_name: firstWord,
+              grade: data.aiGrade ?? null,
+              score: data.aiScore ?? null,
               name: input.name,
               projectType: input.projectType,
               leadId: data.id,
