@@ -137,8 +137,8 @@ export default function AcceptLeadPage() {
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">Accept this lead</h2>
           <p className="text-sm text-muted-foreground">
-            Pay the flat lead fee to proceed. This uses secure checkout on this
-            page.
+            Pay the flat lead fee to proceed. You&apos;ll be redirected to
+            Stripe&apos;s secure checkout.
           </p>
           {lead.paymentStatus === "succeeded" ? (
             <p className="text-sm text-emerald-600">
