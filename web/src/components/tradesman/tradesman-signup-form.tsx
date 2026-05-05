@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck, Check, Copy, Loader2 } from "lucide-react";
 
@@ -10,20 +10,13 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getPublicApiBaseUrl } from "@/lib/public-api-base";
+import {
+  extractPostcodeArea,
+  POSTCODE_AREAS,
+  serviceAreaCodesToShortLabels,
+  TRADE_TYPES,
+} from "@/lib/trade-types";
 import { UK_POSTCODE_REGEX } from "@/lib/uk-postcode";
-
-const TRADE_OPTIONS = [
-  "Plumber",
-  "Electrician",
-  "Joiner",
-  "Builder",
-  "Painter & Decorator",
-  "Gas Engineer",
-  "Tiler",
-  "Roofer",
-  "Landscaper",
-  "Other",
-] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -33,7 +26,8 @@ type FieldErrorKey =
   | "trade_type"
   | "phone"
   | "email"
-  | "postcode";
+  | "postcode"
+  | "service_areas";
 
 const emptyErrors = (): Record<FieldErrorKey, string> => ({
   full_name: "",
@@ -42,6 +36,7 @@ const emptyErrors = (): Record<FieldErrorKey, string> => ({
   phone: "",
   email: "",
   postcode: "",
+  service_areas: "",
 });
 
 type SignupSuccessVerification = {
@@ -50,12 +45,14 @@ type SignupSuccessVerification = {
 };
 
 export function TradesmanSignupForm() {
+  const postcodeAreaRef = useRef<string>("");
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [tradeType, setTradeType] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [postcode, setPostcode] = useState("");
+  const [serviceAreas, setServiceAreas] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<FieldErrorKey, string>>(
     emptyErrors
   );
@@ -93,14 +90,37 @@ export function TradesmanSignupForm() {
       ok = false;
     }
     if (!postcode.trim()) {
-      next.postcode = "Enter the area you cover (postcode)";
+      next.postcode = "Enter your main base postcode";
       ok = false;
     } else if (!UK_POSTCODE_REGEX.test(postcode.trim())) {
       next.postcode = "Enter a valid UK postcode (e.g. G1 1AA)";
       ok = false;
     }
+    if (serviceAreas.length === 0) {
+      next.service_areas =
+        "Select at least one area you travel to for work";
+      ok = false;
+    }
     setErrors(next);
     return ok;
+  }
+
+  function toggleServiceArea(code: string) {
+    setServiceAreas((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  }
+
+  const areaOrder = new Map(
+    POSTCODE_AREAS.map((a, i) => [a.code, i] as const)
+  );
+  function orderedServiceAreas(codes: string[]) {
+    return [...codes].sort(
+      (a, b) =>
+        (areaOrder.get(a as (typeof POSTCODE_AREAS)[number]["code"]) ??
+          999) -
+        (areaOrder.get(b as (typeof POSTCODE_AREAS)[number]["code"]) ?? 999)
+    );
   }
 
   if (successId) {
@@ -113,6 +133,16 @@ export function TradesmanSignupForm() {
         <p className="text-lg font-semibold text-foreground">
           You&apos;re registered — welcome to TradeScore
         </p>
+        {serviceAreas.length > 0 ? (
+          <p className="text-sm text-foreground/90">
+            You&apos;ll be matched to leads in:{" "}
+            <span className="font-medium">
+              {serviceAreaCodesToShortLabels(orderedServiceAreas(serviceAreas)).join(
+                ", "
+              )}
+            </span>
+          </p>
+        ) : null}
         <p className="text-sm text-muted-foreground">Your tradesperson ID</p>
         <div className="space-y-3 rounded-md border border-white/10 bg-zinc-900 px-4 py-5 text-center">
           <code className="block break-all text-3xl font-mono font-bold leading-tight tracking-tight text-[#FF6B35] sm:text-4xl">
@@ -205,6 +235,7 @@ export function TradesmanSignupForm() {
         }
         setPending(true);
         try {
+          const sortedAreas = orderedServiceAreas(serviceAreas);
           const res = await fetch(`${base}/api/tradesman-signup`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -215,6 +246,7 @@ export function TradesmanSignupForm() {
               phone: phone.trim(),
               email: email.trim(),
               postcode: postcode.trim().toUpperCase(),
+              service_areas: sortedAreas,
             }),
           });
           const j = (await res.json().catch(() => ({}))) as {
@@ -307,7 +339,7 @@ export function TradesmanSignupForm() {
           aria-describedby={errors.trade_type ? "ts-trade-err" : undefined}
         >
           <option value="">Select trade</option>
-          {TRADE_OPTIONS.map((t) => (
+          {TRADE_TYPES.map((t) => (
             <option key={t} value={t}>
               {t}
             </option>
@@ -369,14 +401,31 @@ export function TradesmanSignupForm() {
         ) : null}
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="ts-post">Area you cover (postcode) *</Label>
+        <Label htmlFor="ts-post">Primary postcode (main base) *</Label>
         <Input
           id="ts-post"
           value={postcode}
-          onChange={(e) => setPostcode(e.target.value.toUpperCase())}
+          onChange={(e) => {
+            const value = e.target.value.toUpperCase();
+            setPostcode(value);
+            const nextArea = extractPostcodeArea(value);
+            if (!value.trim()) {
+              postcodeAreaRef.current = "";
+              return;
+            }
+            if (
+              nextArea &&
+              nextArea !== postcodeAreaRef.current
+            ) {
+              postcodeAreaRef.current = nextArea;
+              setServiceAreas((s) =>
+                s.includes(nextArea) ? s : [...s, nextArea]
+              );
+            }
+          }}
           autoComplete="postal-code"
           disabled={pending}
-          placeholder="e.g. G1 1AA"
+          placeholder="e.g. G43 2DZ"
           aria-invalid={Boolean(errors.postcode)}
           aria-describedby={errors.postcode ? "ts-post-err" : undefined}
         />
@@ -387,6 +436,51 @@ export function TradesmanSignupForm() {
             role="alert"
           >
             {errors.postcode}
+          </p>
+        ) : null}
+      </div>
+      <div className="grid gap-2">
+        <div>
+          <Label>Service areas — where do you cover? *</Label>
+          <p
+            id="ts-areas-hint"
+            className="mt-1 text-sm text-muted-foreground"
+          >
+            Tick all postcode areas you&apos;d travel to for work. We&apos;ll only
+            match you to leads inside these areas.
+          </p>
+        </div>
+        <div
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
+          role="group"
+          aria-label="Service postcode areas"
+          aria-describedby={
+            errors.service_areas ? "ts-areas-err" : "ts-areas-hint"
+          }
+        >
+          {POSTCODE_AREAS.map(({ code, label }) => (
+            <label
+              key={code}
+              className="flex cursor-pointer items-start gap-2 rounded-md border border-white/10 bg-zinc-950/40 px-2 py-2 text-sm hover:bg-zinc-900/80"
+            >
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border-white/20 accent-[#FF6B35]"
+                checked={serviceAreas.includes(code)}
+                onChange={() => toggleServiceArea(code)}
+                disabled={pending}
+              />
+              <span className="leading-tight">{label}</span>
+            </label>
+          ))}
+        </div>
+        {errors.service_areas ? (
+          <p
+            id="ts-areas-err"
+            className="text-sm text-destructive"
+            role="alert"
+          >
+            {errors.service_areas}
           </p>
         ) : null}
       </div>
