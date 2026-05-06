@@ -20,6 +20,8 @@ export type PaymentConfirmationEmailProps = {
   /** Short project title, e.g. project type. */
   leadTitle?: string;
   dashboardUrl: string;
+  /** First accepted lead — no Stripe payment. */
+  isFirstLeadFree?: boolean;
 };
 
 export function PaymentConfirmationEmail({
@@ -30,19 +32,33 @@ export function PaymentConfirmationEmail({
   homeownerName,
   leadTitle,
   dashboardUrl,
+  isFirstLeadFree = false,
 }: PaymentConfirmationEmailProps) {
   const name = recipientName.trim() || "there";
   const hasMatchCopy = Boolean(
     (homeownerName && homeownerName.trim()) || (leadTitle && leadTitle.trim())
   );
-  const preview = `Payment of ${amountFormatted} received — lead accepted on TradeScore.`;
+  const preview = isFirstLeadFree
+    ? `Your first lead is unlocked on TradeScore — no payment needed.`
+    : `Payment of ${amountFormatted} received — lead accepted on TradeScore.`;
 
   return (
     <TradeScoreLayout preview={preview}>
-      <EmailHeading>Payment received</EmailHeading>
+      <EmailHeading>
+        {isFirstLeadFree ? "First lead unlocked — free" : "Payment received"}
+      </EmailHeading>
       <EmailLead>
-        Hi {name}, we’ve successfully received your payment of{" "}
-        <strong>{amountFormatted}</strong>. Your lead is confirmed.
+        {isFirstLeadFree ? (
+          <>
+            Hi {name}, your <strong>first lead on TradeScore is free</strong> — no
+            payment was taken. Your lead is confirmed and unlocked.
+          </>
+        ) : (
+          <>
+            Hi {name}, we’ve successfully received your payment of{" "}
+            <strong>{amountFormatted}</strong>. Your lead is confirmed.
+          </>
+        )}
       </EmailLead>
       {hasMatchCopy ? (
         <Text
@@ -107,8 +123,9 @@ export function PaymentConfirmationEmail({
       <EmailCta href={dashboardUrl}>View lead in dashboard</EmailCta>
       <EmailDivider />
       <EmailMuted>
-        Receipt questions? Email {EMAIL_BRAND.supportEmail} with your lead
-        reference and we’ll help.
+        {isFirstLeadFree
+          ? `Questions about your free first lead? Email ${EMAIL_BRAND.supportEmail} with your lead reference.`
+          : `Receipt questions? Email ${EMAIL_BRAND.supportEmail} with your lead reference and we’ll help.`}
       </EmailMuted>
     </TradeScoreLayout>
   );

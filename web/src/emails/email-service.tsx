@@ -43,6 +43,7 @@ export async function sendPaymentConfirmationEmail({
   homeownerName,
   projectSummary,
   dashboardUrl,
+  isFirstLeadFree = false,
 }: {
   tradesmanEmail: string;
   tradesmanName: string;
@@ -52,8 +53,11 @@ export async function sendPaymentConfirmationEmail({
   homeownerName: string;
   projectSummary?: string;
   dashboardUrl: string;
+  isFirstLeadFree?: boolean;
 }): Promise<{ success: true; email: string }> {
-  const amountFormatted = `£${amountGbp.toFixed(2)}`;
+  const isFree = Boolean(isFirstLeadFree);
+  const effectiveGbp = isFree ? 0 : amountGbp;
+  const amountFormatted = `£${effectiveGbp.toFixed(2)}`;
 
   const { html, text } = await renderEmail(
     <PaymentConfirmationEmail
@@ -64,14 +68,17 @@ export async function sendPaymentConfirmationEmail({
       homeownerName={homeownerName}
       projectSummary={projectSummary}
       dashboardUrl={dashboardUrl}
+      isFirstLeadFree={isFree}
     />,
   );
 
-  const subject = `Payment confirmed — ${amountFormatted}`;
+  const subject = isFree
+    ? "Your first lead is unlocked — no payment needed"
+    : `Payment confirmed — ${amountFormatted}`;
 
   // TODO: plug in SendGrid / Resend / etc.
   console.log(`
-📧 PAYMENT CONFIRMATION EMAIL
+📧 ${isFree ? "FREE LEAD" : "PAYMENT"} CONFIRMATION EMAIL
 To: ${tradesmanEmail}
 Subject: ${subject}
 

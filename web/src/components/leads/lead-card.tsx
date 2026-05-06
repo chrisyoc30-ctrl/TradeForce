@@ -31,7 +31,7 @@ export type LeadCardProps = {
 };
 
 export function LeadCard({ lead }: LeadCardProps) {
-  const eligibleFree = useFirstFreeLeadEligibility();
+  const eligibleFree = useFirstFreeLeadEligibility(lead.id);
   const [viewerId, setViewerId] = useState("");
   useEffect(() => {
     setViewerId(readStoredTradespersonId());
