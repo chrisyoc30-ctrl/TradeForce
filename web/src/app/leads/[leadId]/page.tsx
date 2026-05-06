@@ -1,11 +1,11 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { trpc } from "@/trpc/react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { gradeClass, fraudStyles } from "@/lib/grade-styles";
@@ -14,13 +14,16 @@ import {
   projectTypeLabel,
   timelineLabel,
 } from "@/components/leads/lead-helpers";
-import { BidForm } from "@/components/BidForm";
 import { LeadAcceptPayment } from "@/components/leads/lead-accept-payment";
 import { cn } from "@/lib/utils";
 
+function leadSecured(lead: { paymentStatus?: string | null }): boolean {
+  const ps = (lead.paymentStatus ?? "").toLowerCase();
+  return ps === "succeeded" || ps === "free_first";
+}
+
 export default function LeadDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const leadId = typeof params.leadId === "string" ? params.leadId : "";
 
   const utils = trpc.useUtils();
@@ -28,26 +31,6 @@ export default function LeadDetailPage() {
     { id: leadId },
     { enabled: Boolean(leadId) }
   );
-  const { data: matched = [], isLoading: matchedLoading } =
-    trpc.leads.getMatched.useQuery(
-      { leadId },
-      { enabled: Boolean(leadId) }
-    );
-  const { data: bids = [], isLoading: bidsLoading } =
-    trpc.bids.getForLead.useQuery(
-      { leadId },
-      {
-        enabled: Boolean(leadId),
-        refetchInterval: 5000,
-      }
-    );
-
-  const acceptBid = trpc.bids.accept.useMutation({
-    onSuccess: () => {
-      void utils.bids.getForLead.invalidate({ leadId });
-      void utils.leads.getById.invalidate({ id: leadId });
-    },
-  });
 
   if (!leadId) {
     return (
@@ -130,106 +113,25 @@ export default function LeadDetailPage() {
           </CardContent>
         </Card>
 
-        <section className="border-t border-border/80 pt-8">
-          <h2 className="mb-6 text-2xl font-bold tracking-tight">Submit your bid</h2>
-          <BidForm
-            leadId={lead.id}
-            leadBudget={lead.budget}
-            onSuccess={() => {
-              void utils.bids.getForLead.invalidate({ leadId });
-              void utils.leads.getById.invalidate({ id: leadId });
-              router.refresh();
-            }}
-          />
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Matched tradespeople</h2>
-          {matchedLoading ? (
-            <p className="text-sm text-muted-foreground">Loading matches…</p>
-          ) : matched.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No matches yet.</p>
-          ) : (
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {matched.map((t) => (
-                <Card key={t.id}>
-                  <CardContent className="space-y-1 p-4 text-sm">
-                    <p className="font-medium">{t.name}</p>
-                    <p className="text-muted-foreground">{t.trade}</p>
-                    <p className="text-foreground/90">
-                      Match score:{" "}
-                      <span className="font-semibold">{t.matchScore}%</span>
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Bids</h2>
-          {bidsLoading ? (
-            <p className="text-sm text-muted-foreground">Loading bids…</p>
-          ) : bids.length === 0 ? (
+        {!leadSecured(lead) ? (
+          <section className="space-y-2 border-t border-border/80 pt-8">
+            <h2 className="text-lg font-semibold">Accept this lead</h2>
             <p className="text-sm text-muted-foreground">
-              No bids yet. Trades can bid from{" "}
-              <Link href="/available-jobs" className="underline">
-                Available jobs
-              </Link>
-              .
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {bids.map((b) => (
-                <Card key={b.id}>
-                  <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm">
-                      <p className="font-medium">
-                        {b.tradesman?.name ?? b.tradesmanName ?? "Tradesperson"}
-                      </p>
-                      <p className="text-muted-foreground">{b.description}</p>
-                      <p className="pt-1 text-lg font-semibold text-foreground">
-                        £{Number(b.amount).toLocaleString("en-GB")}
-                      </p>
-                      <Badge variant="outline" className="mt-1 capitalize">
-                        {b.status}
-                      </Badge>
-                    </div>
-                    {b.status === "pending" && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={acceptBid.isPending}
-                        onClick={() => acceptBid.mutate({ bidId: b.id })}
-                      >
-                        Accept bid
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </ul>
-          )}
-          {acceptBid.error && (
-            <p className="text-sm text-destructive">{acceptBid.error.message}</p>
-          )}
-        </section>
-
-        {lead.paymentStatus !== "succeeded" && (
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold">Secure this lead (trade)</h2>
-            <p className="text-sm text-muted-foreground">
-              Flat fee to accept the lead after you win the job — same flow as the
-              lead board.
+              Review the project above, then accept to unlock contact details.
             </p>
             <LeadAcceptPayment
               leadId={leadId}
+              exclusiveMatchStatus={lead.matchStatus}
+              matchedTradespersonId={lead.matchedTradespersonId}
               onPaymentSucceeded={() => {
                 void utils.leads.getById.invalidate({ id: leadId });
               }}
             />
           </section>
+        ) : (
+          <p className="text-sm text-emerald-600">
+            This lead is already secured.
+          </p>
         )}
 
         <div className="flex flex-wrap gap-2">
