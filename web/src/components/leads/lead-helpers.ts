@@ -30,6 +30,20 @@ export function locationLabel(lead: Lead): string {
   return s || "—";
 }
 
+/**
+ * Area-only label for trades (postcode outward + "area") when API masks street-level location.
+ */
+export function tradesLeadLocationPreview(lead: Lead): string {
+  const area = lead.contactPostcodeArea?.trim();
+  if (area) return area;
+  return locationLabel(lead);
+}
+
+/** Homeowner contacts are unlocked for this JSON payload (matched trade + acceptance + payment cleared). */
+export function isTradeLeadContactUnlocked(lead: Lead): boolean {
+  return lead.contactRevealUnlocked === true;
+}
+
 export function descriptionExcerpt(lead: Lead, max = 100): string {
   const d = (lead.description as string) || "";
   if (d.length <= max) return d;

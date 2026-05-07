@@ -9,7 +9,7 @@ import { useFirstFreeLeadEligibility } from "@/components/leads/use-first-free-l
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import type { Lead } from "@/types/lead";
-import { projectTypeLabel, locationLabel } from "@/components/leads/lead-helpers";
+import { projectTypeLabel, tradesLeadLocationPreview } from "@/components/leads/lead-helpers";
 import { cn } from "@/lib/utils";
 import type { LeadGrade } from "@/components/leads/grade-badge";
 
@@ -72,7 +72,7 @@ export function LeadCard({ lead }: LeadCardProps) {
             reservedUntil={lead.reservedUntil}
           />
         </div>
-        <p className="text-sm text-muted-foreground">{locationLabel(lead)}</p>
+        <p className="text-sm text-muted-foreground">{tradesLeadLocationPreview(lead)}</p>
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
         <AIScoreCard

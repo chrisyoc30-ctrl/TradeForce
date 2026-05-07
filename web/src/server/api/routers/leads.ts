@@ -205,12 +205,26 @@ export const leadsRouter = createTRPCRouter({
     }),
 
   getById: publicProcedure
-    .input(z.object({ id: z.string().min(1) }))
+    .input(
+      z.object({
+        id: z.string().min(1),
+        /** When set (saved tradesperson ID), API may reveal contact fields after acceptance + payment. */
+        viewerTradespersonId: z.string().trim().optional(),
+        /** When set, API may reveal contact fields when it matches this lead's submitted phone (homeowner flows). */
+        homeownerPhone: z.string().trim().optional(),
+      }),
+    )
     .query(async ({ input }) => {
       const base = getApiBaseUrl();
+      const qp = new URLSearchParams();
+      const vt = input.viewerTradespersonId?.trim();
+      if (vt) qp.set("tradesperson_id", vt);
+      const hp = input.homeownerPhone?.trim();
+      if (hp) qp.set("homeowner_phone", hp);
+      const q = qp.toString();
       const res = await fetch(
-        `${base}/api/leads/${encodeURIComponent(input.id)}`,
-        { cache: "no-store" }
+        `${base}/api/leads/${encodeURIComponent(input.id)}${q ? `?${q}` : ""}`,
+        { cache: "no-store" },
       );
       if (res.status === 404) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Lead not found" });

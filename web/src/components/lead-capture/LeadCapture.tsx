@@ -13,6 +13,7 @@ import {
   type SubmissionSuccessData,
 } from "@/components/lead-capture/submission-success";
 import { trpc } from "@/trpc/react";
+import { persistHomeownerSessionPhone } from "@/lib/auth-nav";
 import { trackLeadSubmitted } from "@/lib/analytics";
 import { isLeadFormSubmittable } from "@/lib/lead-form-submittable";
 import { leadCaptureFormSchema } from "@/lib/schemas/lead-capture";
@@ -120,6 +121,7 @@ export function LeadCapture() {
           };
           create.mutate(payload, {
             onSuccess: (data) => {
+              persistHomeownerSessionPhone(v.phone);
               const scored = data.aiScoredByAI !== false;
               const est =
                 data.aiEstimatedValue ?? "Unable to estimate";

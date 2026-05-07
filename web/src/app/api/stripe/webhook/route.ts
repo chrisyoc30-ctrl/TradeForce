@@ -13,6 +13,7 @@ import { getStripe } from "@/lib/stripe-server";
 import { recordLeadPaymentInApi } from "@/lib/record-lead-payment";
 import { TRADESMAN_LEAD_PRICE_GBP } from "@/lib/pricing";
 import type { Lead } from "@/types/lead";
+import { internalFlaskHeaders } from "@/lib/flask-internal-fetch";
 
 function paymentIntentIdFromCheckoutSession(
   session: Stripe.Checkout.Session,
@@ -148,7 +149,7 @@ export async function POST(req: Request) {
         try {
           const leadRes = await fetch(
             `${apiBase.replace(/\/$/, "")}/api/leads/${encodeURIComponent(leadId)}`,
-            { cache: "no-store" },
+            { cache: "no-store", headers: internalFlaskHeaders() },
           );
           if (leadRes.ok) {
             const lead = (await leadRes.json()) as Lead;

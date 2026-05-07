@@ -9,6 +9,7 @@ import {
   sendPaymentConfirmationEmail,
 } from "@/emails/email-service";
 import { getApiBaseUrl } from "@/lib/api-url";
+import { internalFlaskHeaders } from "@/lib/flask-internal-fetch";
 import type { Lead } from "@/types/lead";
 
 export const runtime = "nodejs";
@@ -80,7 +81,7 @@ export async function POST(
     try {
       const lr = await fetch(
         `${base}/api/leads/${encodeURIComponent(leadId)}`,
-        { cache: "no-store" },
+        { cache: "no-store", headers: internalFlaskHeaders() },
       );
       let leadTitle = "Project";
       let homeownerName = "Your client";

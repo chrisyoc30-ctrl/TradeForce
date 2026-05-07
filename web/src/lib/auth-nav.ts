@@ -19,6 +19,15 @@ export function persistHomeownerSessionPhone(phoneDigits: string) {
   }
 }
 
+export function readHomeownerSessionPhone(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return (sessionStorage.getItem(HOMEOWNER_SESSION_PHONE_KEY) ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
 export function clearHomeownerSession() {
   if (typeof window === "undefined") return;
   try {

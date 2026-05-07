@@ -46,7 +46,12 @@ export interface Lead {
   matchAttempt?: number | null;
   previouslyOfferedTo?: string[];
   reservedUntil?: string | null;
-  matchedAt?: string | null;
+  /** Whether the Flask API exposes homeowner name/phone/email to this viewer. */
+  contactRevealUnlocked?: boolean;
+  /** True when homeowner PII is intentionally stripped for trades browse/preview views. */
+  contactMasked?: boolean;
+  /** e.g. "G52 area" when full postcode/street withheld. */
+  contactPostcodeArea?: string | null;
 }
 
 export interface CreateLeadResult {

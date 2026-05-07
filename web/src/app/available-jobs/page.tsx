@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { gradeClass } from "@/lib/grade-styles";
 import {
   budgetLabel,
-  locationLabel,
+  tradesLeadLocationPreview,
   projectTypeLabel,
   timelineLabel,
 } from "@/components/leads/lead-helpers";
@@ -328,7 +328,7 @@ export default function AvailableJobsPage() {
                           <div>
                             <p className="font-medium">{projectTypeLabel(lead)}</p>
                             <p className="text-sm text-muted-foreground">
-                              {budgetLabel(lead)} · {locationLabel(lead)} ·{" "}
+                              {budgetLabel(lead)} · {tradesLeadLocationPreview(lead)} ·{" "}
                               {timelineLabel(lead)}
                             </p>
                           </div>

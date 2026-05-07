@@ -7,6 +7,7 @@ import {
 } from "@/components/leads/lead-helpers";
 import { getApiBaseUrl } from "@/lib/api-url";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+import { internalFlaskHeaders } from "@/lib/flask-internal-fetch";
 import { TRADESMAN_LEAD_PRICE_GBP } from "@/lib/pricing";
 import { getStripe } from "@/lib/stripe-server";
 import type { Lead } from "@/types/lead";
@@ -70,7 +71,10 @@ export const paymentsRouter = createTRPCRouter({
       });
       const res = await fetch(
         `${base}/api/leads/${encodeURIComponent(input.leadId)}`,
-        { cache: "no-store" },
+        {
+          cache: "no-store",
+          headers: internalFlaskHeaders(),
+        },
       );
       console.log("[stripe-payment] lead fetch response:", {
         status: res.status,

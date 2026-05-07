@@ -23,7 +23,7 @@ export default function DeclineLeadPage() {
 
   const mutation = trpc.leads.declineExclusive.useMutation({
     onSuccess: async () => {
-      await utils.leads.getById.invalidate({ id: leadId });
+      await utils.leads.getById.invalidate();
       setDone(true);
     },
   });

@@ -13,7 +13,7 @@ import { gradeClass, fraudStyles } from "@/lib/grade-styles";
 import {
   budgetLabel,
   defaultMatchConfidence,
-  locationLabel,
+  tradesLeadLocationPreview,
   projectTypeLabel,
   timelineLabel,
 } from "@/components/leads/lead-helpers";
@@ -61,8 +61,8 @@ export function LeadDetailDialog({
           </p>
           <div className="grid gap-2 text-muted-foreground">
             <p>
-              <span className="text-foreground/80">Location: </span>
-              {locationLabel(lead)}
+              <span className="text-foreground/80">Area / location: </span>
+              {tradesLeadLocationPreview(lead)}
             </p>
             <p>
               <span className="text-foreground/80">Budget: </span>
@@ -85,14 +85,29 @@ export function LeadDetailDialog({
               <span className="text-foreground/80">Match confidence: </span>
               {defaultMatchConfidence(lead)}%
             </p>
-            {lead.paymentStatus === "succeeded" && (
+            <p className="rounded-md border border-amber-500/35 bg-muted/40 px-2 py-1.5 text-xs text-muted-foreground">
+              {lead.contactRevealUnlocked === true ? (
+                <>Homeowner contacts are unlocked for secured leads.</>
+              ) : (
+                <>
+                  Homeowner name, phone, and email stay hidden until you accept and pay £25 — or accept
+                  your first lead free — for this listing.
+                </>
+              )}
+            </p>
+            {["succeeded", "paid", "free_first", "unlimited_tier"].includes(
+              (lead.paymentStatus ?? "").toLowerCase(),
+            ) ? (
               <p className="text-sm font-medium text-emerald-400/90">
                 Payment received — lead accepted
               </p>
-            )}
+            ) : null}
           </div>
         </div>
-        {onLeadPaymentSucceeded && lead.paymentStatus !== "succeeded" && (
+        {onLeadPaymentSucceeded &&
+        !["succeeded", "paid", "free_first", "unlimited_tier"].includes(
+          (lead.paymentStatus ?? "").toLowerCase(),
+        ) ? (
           <LeadAcceptPayment
             leadId={lead.id}
             onPaymentSucceeded={() => {
@@ -100,7 +115,7 @@ export function LeadDetailDialog({
               onOpenChange(false);
             }}
           />
-        )}
+        ) : null}
         <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             Close

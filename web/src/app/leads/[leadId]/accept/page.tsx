@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { trpc } from "@/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -11,10 +12,15 @@ import { GradeBadge, type LeadGrade } from "@/components/leads/grade-badge";
 import { LeadAcceptPayment } from "@/components/leads/lead-accept-payment";
 import { AI_FLAG_LABELS } from "@/components/leads/ai-score-card";
 import {
+  budgetLabel,
+  isTradeLeadContactUnlocked,
   projectTypeLabel,
-  locationLabel,
+  timelineLabel,
+  tradesLeadLocationPreview,
 } from "@/components/leads/lead-helpers";
 import { cn } from "@/lib/utils";
+
+const TS_STORAGE = "tradescore-tradesperson-id";
 
 function toLeadGrade(grade: string | undefined): LeadGrade {
   const g = (grade ?? "C").toUpperCase();
@@ -24,16 +30,30 @@ function toLeadGrade(grade: string | undefined): LeadGrade {
   return "C";
 }
 
+function paymentClearedStatuses(lead: { paymentStatus?: string | null }): boolean {
+  const ps = (lead.paymentStatus ?? "").toLowerCase();
+  return ["succeeded", "paid", "free_first", "unlimited_tier"].includes(ps);
+}
+
 export default function AcceptLeadPage() {
   const params = useParams();
   const leadId = typeof params.leadId === "string" ? params.leadId : "";
   const utils = trpc.useUtils();
+  const [viewerTradespersonId, setViewerTradespersonId] = useState("");
+
+  useEffect(() => {
+    setViewerTradespersonId(
+      (window.localStorage.getItem(TS_STORAGE) ?? "").trim(),
+    );
+  }, []);
+
+  const getByIdInput = {
+    id: leadId,
+    viewerTradespersonId: viewerTradespersonId.trim() || undefined,
+  };
 
   const { data: lead, isLoading, isError, error, refetch } =
-    trpc.leads.getById.useQuery(
-      { id: leadId },
-      { enabled: Boolean(leadId) }
-    );
+    trpc.leads.getById.useQuery(getByIdInput, { enabled: Boolean(leadId) });
 
   if (!leadId) {
     return (
@@ -96,7 +116,7 @@ export default function AcceptLeadPage() {
               {projectTypeLabel(lead)}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {locationLabel(lead)}
+              {tradesLeadLocationPreview(lead)}
             </p>
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
               <GradeBadge grade={grade} size="md" />
@@ -110,6 +130,13 @@ export default function AcceptLeadPage() {
             {reason ? (
               <p className="text-xs italic text-muted-foreground">{reason}</p>
             ) : null}
+            <p className="text-xs text-muted-foreground">
+              <span className="text-foreground/80">Budget: </span>
+              {budgetLabel(lead)}
+              {" · "}
+              <span className="text-foreground/80">Timeline: </span>
+              {timelineLabel(lead)}
+            </p>
             <p className="rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs text-foreground/90">
               Est. job value: {est}
             </p>
@@ -134,13 +161,65 @@ export default function AcceptLeadPage() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Homeowner contact</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {isTradeLeadContactUnlocked(lead) ? (
+              <div className="space-y-1.5 text-foreground/90">
+                {(lead.name ?? "").trim() ? (
+                  <p>
+                    <span className="text-muted-foreground">Name:</span>{" "}
+                    {lead.name!.trim()}
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground">Name not recorded.</p>
+                )}
+                {(lead.phone ?? "").trim() ? (
+                  <p>
+                    <span className="text-muted-foreground">Phone:</span>{" "}
+                    <a
+                      href={`tel:${lead.phone!.replace(/\s/g, "")}`}
+                      className="font-medium underline-offset-4 hover:underline"
+                    >
+                      {lead.phone}
+                    </a>
+                  </p>
+                ) : null}
+                {(lead.email ?? "").trim() ? (
+                  <p className="break-all">
+                    <span className="text-muted-foreground">Email:</span>{" "}
+                    <a
+                      href={`mailto:${encodeURIComponent(lead.email!.trim())}`}
+                      className="font-medium underline-offset-4 hover:underline"
+                    >
+                      {lead.email}
+                    </a>
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="rounded-md border border-amber-500/35 bg-muted/35 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                Contact details unlock after this lead is{" "}
+                <strong className="text-foreground">accepted and paid</strong> (Stripe £25),
+                or your{" "}
+                <strong className="text-foreground">first qualifying free acceptance</strong>.
+                You&apos;re currently seeing postcode area only:{" "}
+                <strong className="text-foreground">{tradesLeadLocationPreview(lead)}</strong>
+                .
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">Accept this lead</h2>
           <p className="text-sm text-muted-foreground">
             Pay the flat lead fee to proceed. You&apos;ll be redirected to
             Stripe&apos;s secure checkout.
           </p>
-          {lead.paymentStatus === "succeeded" ? (
+          {paymentClearedStatuses(lead) ? (
             <p className="text-sm text-emerald-600">
               This lead is already paid for and secured.
             </p>
@@ -150,7 +229,7 @@ export default function AcceptLeadPage() {
               exclusiveMatchStatus={lead.matchStatus}
               matchedTradespersonId={lead.matchedTradespersonId}
               onPaymentSucceeded={() => {
-                void utils.leads.getById.invalidate({ id: leadId });
+                void utils.leads.getById.invalidate();
               }}
             />
           )}
