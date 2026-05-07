@@ -1,5 +1,6 @@
 /** Single source of truth for public pricing (GBP). */
 export const TRADESMAN_LEAD_PRICE_GBP = 25;
+export const TRADESMAN_UNLIMITED_MONTHLY_GBP = 99;
 
 export const pricingCopy = {
   brandLine: "Simple pricing — no surprises.",
@@ -16,14 +17,14 @@ export const pricingCopy = {
 
   trades: {
     title: "For tradespeople",
-    priceLabel: `£${TRADESMAN_LEAD_PRICE_GBP} per lead`,
-    summary: "Flat fee per lead — no commission.",
+    priceLabel: `£${TRADESMAN_LEAD_PRICE_GBP} per lead or Unlimited`,
+    summary: `Pay per unlock or £${TRADESMAN_UNLIMITED_MONTHLY_GBP}/month — flat fee — no commission.`,
     headline:
-      `For tradesmen: £${TRADESMAN_LEAD_PRICE_GBP} per lead (first lead FREE)`,
+      `£${TRADESMAN_LEAD_PRICE_GBP} per lead (first lead FREE) · or Unlimited at £${TRADESMAN_UNLIMITED_MONTHLY_GBP}/month`,
     points: [
       "First lead is FREE — try the service on us",
-      `After your first lead: £${TRADESMAN_LEAD_PRICE_GBP} per lead when you accept a lead`,
-      "No monthly subscription — only pay when you accept a lead",
+      `Pay-per-lead: £${TRADESMAN_LEAD_PRICE_GBP} per lead when you accept after your free one`,
+      `Unlimited subscription: £${TRADESMAN_UNLIMITED_MONTHLY_GBP}/month — no per-lead charge on unlocks`,
       "No commission — you keep 100% of what homeowners pay you",
     ] as const,
   },
