@@ -44,6 +44,7 @@ export async function sendPaymentConfirmationEmail({
   projectSummary,
   dashboardUrl,
   isFirstLeadFree = false,
+  isSubscriptionIncluded = false,
 }: {
   tradesmanEmail: string;
   tradesmanName: string;
@@ -54,9 +55,11 @@ export async function sendPaymentConfirmationEmail({
   projectSummary?: string;
   dashboardUrl: string;
   isFirstLeadFree?: boolean;
+  isSubscriptionIncluded?: boolean;
 }): Promise<{ success: true; email: string }> {
+  const isIncluded = Boolean(isSubscriptionIncluded);
   const isFree = Boolean(isFirstLeadFree);
-  const effectiveGbp = isFree ? 0 : amountGbp;
+  const effectiveGbp = isFree || isIncluded ? 0 : amountGbp;
   const amountFormatted = `£${effectiveGbp.toFixed(2)}`;
 
   const { html, text } = await renderEmail(
@@ -69,16 +72,19 @@ export async function sendPaymentConfirmationEmail({
       projectSummary={projectSummary}
       dashboardUrl={dashboardUrl}
       isFirstLeadFree={isFree}
+      isSubscriptionIncluded={isIncluded}
     />,
   );
 
-  const subject = isFree
-    ? "Your first lead is unlocked — no payment needed"
-    : `Payment confirmed — ${amountFormatted}`;
+  const subject = isIncluded
+    ? "Lead accepted — included in your subscription"
+    : isFree
+      ? "Your first lead is unlocked — no payment needed"
+      : `Payment confirmed — ${amountFormatted}`;
 
   // TODO: plug in SendGrid / Resend / etc.
   console.log(`
-📧 ${isFree ? "FREE LEAD" : "PAYMENT"} CONFIRMATION EMAIL
+📧 ${isIncluded ? "SUBSCRIPTION INCLUDED" : isFree ? "FREE LEAD" : "PAYMENT"} CONFIRMATION EMAIL
 To: ${tradesmanEmail}
 Subject: ${subject}
 
