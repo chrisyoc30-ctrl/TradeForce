@@ -26,7 +26,6 @@ export async function POST(
     tradespersonId?: string;
     fullName?: string;
     email?: string;
-    reason?: string;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -46,18 +45,12 @@ export async function POST(
     return NextResponse.json({ error: "API not configured" }, { status: 503 });
   }
 
-  const reasonRaw = (body.reason ?? "free_first").trim();
-  const reason =
-    reasonRaw === "unlimited_tier" || reasonRaw === "free_first"
-      ? reasonRaw
-      : "free_first";
-
   const res = await fetch(
     `${base}/api/leads/${encodeURIComponent(leadId)}/accept-free`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tradesperson_id: tid, reason }),
+      body: JSON.stringify({ tradesperson_id: tid }),
     },
   );
 
@@ -106,9 +99,7 @@ export async function POST(
         homeownerName,
         projectSummary,
         dashboardUrl: getLeadDetailUrl(leadId),
-        isFirstLeadFree: typeof data.paymentStatus === "string" && data.paymentStatus === "free_first",
-        isSubscriptionIncluded:
-          typeof data.paymentStatus === "string" && data.paymentStatus === "unlimited_tier",
+        isFirstLeadFree: true,
       });
     } catch (e) {
       console.error("[accept-free] confirmation email failed (ignored):", e);

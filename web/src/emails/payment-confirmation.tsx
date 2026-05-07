@@ -22,8 +22,6 @@ export type PaymentConfirmationEmailProps = {
   dashboardUrl: string;
   /** First accepted lead — no Stripe payment. */
   isFirstLeadFree?: boolean;
-  /** Unlimited monthly plan — included in subscription. */
-  isSubscriptionIncluded?: boolean;
 };
 
 export function PaymentConfirmationEmail({
@@ -35,35 +33,22 @@ export function PaymentConfirmationEmail({
   leadTitle,
   dashboardUrl,
   isFirstLeadFree = false,
-  isSubscriptionIncluded = false,
 }: PaymentConfirmationEmailProps) {
   const name = recipientName.trim() || "there";
   const hasMatchCopy = Boolean(
     (homeownerName && homeownerName.trim()) || (leadTitle && leadTitle.trim())
   );
-  const preview = isSubscriptionIncluded
-    ? `Lead accepted on TradeScore — included in your subscription.`
-    : isFirstLeadFree
-      ? `Your first lead is unlocked on TradeScore — no payment needed.`
-      : `Payment of ${amountFormatted} received — lead accepted on TradeScore.`;
+  const preview = isFirstLeadFree
+    ? `Your first lead is unlocked on TradeScore — no payment needed.`
+    : `Payment of ${amountFormatted} received — lead accepted on TradeScore.`;
 
   return (
     <TradeScoreLayout preview={preview}>
       <EmailHeading>
-        {isSubscriptionIncluded
-          ? "Lead included in your plan"
-          : isFirstLeadFree
-            ? "First lead unlocked — free"
-            : "Payment received"}
+        {isFirstLeadFree ? "First lead unlocked — free" : "Payment received"}
       </EmailHeading>
       <EmailLead>
-        {isSubscriptionIncluded ? (
-          <>
-            Hi {name}, this lead is <strong>included in your TradeScore Unlimited</strong>{" "}
-            subscription — no per-lead payment was taken. Your lead is confirmed and
-            unlocked.
-          </>
-        ) : isFirstLeadFree ? (
+        {isFirstLeadFree ? (
           <>
             Hi {name}, your <strong>first lead on TradeScore is free</strong> — no
             payment was taken. Your lead is confirmed and unlocked.
@@ -138,11 +123,9 @@ export function PaymentConfirmationEmail({
       <EmailCta href={dashboardUrl}>View lead in dashboard</EmailCta>
       <EmailDivider />
       <EmailMuted>
-        {isSubscriptionIncluded
-          ? `Questions about your subscription? Email ${EMAIL_BRAND.supportEmail} with your lead reference.`
-          : isFirstLeadFree
-            ? `Questions about your free first lead? Email ${EMAIL_BRAND.supportEmail} with your lead reference.`
-            : `Receipt questions? Email ${EMAIL_BRAND.supportEmail} with your lead reference and we’ll help.`}
+        {isFirstLeadFree
+          ? `Questions about your free first lead? Email ${EMAIL_BRAND.supportEmail} with your lead reference.`
+          : `Receipt questions? Email ${EMAIL_BRAND.supportEmail} with your lead reference and we’ll help.`}
       </EmailMuted>
     </TradeScoreLayout>
   );

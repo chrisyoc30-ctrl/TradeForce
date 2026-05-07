@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,9 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getPublicApiBaseUrl } from "@/lib/public-api-base";
-import { TRADESMAN_LEAD_PRICE_GBP } from "@/lib/pricing";
 import { trpc } from "@/trpc/react";
+import { TRADESMAN_LEAD_PRICE_GBP } from "@/lib/pricing";
 
 const NAME_KEY = "tradescore-tradesman-name";
 const EMAIL_KEY = "tradescore-tradesman-email";
@@ -32,10 +31,6 @@ type Props = {
   matchedTradespersonId?: string | null;
 };
 
-type SubscriptionSnapshot =
-  | { loading: true }
-  | { loading: false; tier: string; status: string };
-
 export function LeadAcceptPayment({
   leadId,
   onPaymentSucceeded,
@@ -47,73 +42,16 @@ export function LeadAcceptPayment({
   const [tradesmanEmail, setTradesmanEmail] = useState("");
   const [freeDialogOpen, setFreeDialogOpen] = useState(false);
   const tradeIdForFreeRef = useRef<string>("");
-  const [subscription, setSubscription] = useState<SubscriptionSnapshot>({
-    loading: true,
-  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     setTradesmanName(
-      (window.localStorage.getItem(NAME_KEY) ?? "").trim() || "",
+      (window.localStorage.getItem(NAME_KEY) ?? "").trim() || ""
     );
     setTradesmanEmail(
-      (window.localStorage.getItem(EMAIL_KEY) ?? "").trim() || "",
+      (window.localStorage.getItem(EMAIL_KEY) ?? "").trim() || ""
     );
   }, []);
-
-  const fetchSubscriptionSnapshot = useCallback(async (tradeIdForCheck: string) => {
-    const tid = tradeIdForCheck.trim();
-    const base = getPublicApiBaseUrl();
-    if (!tid || !base) {
-      setSubscription({
-        loading: false,
-        tier: "pay_per_lead",
-        status: "active",
-      });
-      return;
-    }
-    try {
-      const cr = await fetch(
-        `${base}/api/tradesperson/${encodeURIComponent(tid)}/subscription`,
-        { cache: "no-store" },
-      );
-      const cj = (await cr.json().catch(() => ({}))) as {
-        tier?: string;
-        status?: string;
-        error?: string;
-      };
-      if (!cr.ok) {
-        setSubscription({
-          loading: false,
-          tier: "pay_per_lead",
-          status: "active",
-        });
-        return;
-      }
-      setSubscription({
-        loading: false,
-        tier: String(cj.tier ?? "pay_per_lead"),
-        status: String(cj.status ?? "active"),
-      });
-    } catch {
-      setSubscription({
-        loading: false,
-        tier: "pay_per_lead",
-        status: "active",
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const expectId =
-      typeof matchedTradespersonId === "string"
-        ? matchedTradespersonId.trim()
-        : "";
-    const tsId =
-      (window.localStorage.getItem(TS_ID_KEY) ?? "").trim();
-    void fetchSubscriptionSnapshot(tsId || expectId);
-  }, [fetchSubscriptionSnapshot, matchedTradespersonId]);
 
   function persistIdentity(name: string, email: string) {
     if (typeof window !== "undefined") {
@@ -123,11 +61,6 @@ export function LeadAcceptPayment({
   }
 
   const confirmExclusive = trpc.leads.confirmExclusiveAccept.useMutation();
-
-  const unlimitedActive =
-    !subscription.loading &&
-    subscription.tier === "unlimited" &&
-    subscription.status.toLowerCase() === "active";
 
   const runStripeCheckout = async () => {
     persistIdentity(tradesmanName.trim(), tradesmanEmail.trim());
@@ -144,60 +77,6 @@ export function LeadAcceptPayment({
     url.searchParams.set("client_reference_id", leadId);
     window.location.assign(url.toString());
     onPaymentSucceeded();
-  };
-
-  const acceptWithoutPayment = async (reason: "free_first" | "unlimited_tier") => {
-    const name = tradesmanName.trim();
-    const email = tradesmanEmail.trim();
-    const tid = tradeIdForFreeRef.current.trim();
-    if (!name || !email || !tid) {
-      if (reason === "free_first") setFreeDialogOpen(false);
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const r = await fetch(
-        `/api/leads/${encodeURIComponent(leadId)}/accept-free`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tradespersonId: tid,
-            fullName: name,
-            email,
-            reason,
-          }),
-        },
-      );
-      const j = (await r.json().catch(() => ({}))) as { error?: string };
-      if (!r.ok) {
-        setBusy(false);
-        if (reason === "free_first") setFreeDialogOpen(false);
-        window.alert(
-          j.error ??
-            "Could not accept this lead without checkout. Try again or use Stripe.",
-        );
-        return;
-      }
-      if (reason === "free_first" && typeof window !== "undefined") {
-        window.localStorage.setItem(FREE_LEAD_KEY, "1");
-      }
-      persistIdentity(name, email);
-      onPaymentSucceeded();
-      const qp =
-        reason === "free_first"
-          ? "free=true"
-          : "unlimited=true";
-      window.location.assign(
-        `/leads/accept-success?${qp}&leadId=${encodeURIComponent(leadId)}`,
-      );
-    } catch (e) {
-      console.error(e);
-      setBusy(false);
-      if (reason === "free_first") setFreeDialogOpen(false);
-      window.alert("Something went wrong. Please try again.");
-    }
   };
 
   const handleAcceptLead = async () => {
@@ -217,7 +96,7 @@ export function LeadAcceptPayment({
         : "";
     if (reserve && expectId && (!tsId || tsId !== expectId)) {
       window.alert(
-        "This lead was assigned exclusively using a tradesperson ID. Open this link on the device where you saved your TradeScore ID, or paste your ID under Available Jobs first.",
+        "This lead was assigned exclusively using a tradesperson ID. Open this link on the device where you saved your TradeScore ID, or paste your ID under Available Jobs first."
       );
       return;
     }
@@ -238,43 +117,10 @@ export function LeadAcceptPayment({
           ? matchedTradespersonId.trim()
           : "");
 
-      let activeUnlimitedNow = false;
-      const tradeTrim = tradeIdForCheck.trim();
-      if (tradeTrim) {
-        const base = getPublicApiBaseUrl();
-        if (base) {
-          const cr = await fetch(
-            `${base}/api/tradesperson/${encodeURIComponent(tradeTrim)}/subscription`,
-            { cache: "no-store" },
-          );
-          const cj = (await cr.json().catch(() => ({}))) as {
-            tier?: string;
-            status?: string;
-          };
-          if (cr.ok) {
-            activeUnlimitedNow =
-              String(cj.tier ?? "") === "unlimited" &&
-              String(cj.status ?? "").toLowerCase() === "active";
-            setSubscription({
-              loading: false,
-              tier: String(cj.tier ?? "pay_per_lead"),
-              status: String(cj.status ?? "active"),
-            });
-          }
-        }
-      }
-
-      if (activeUnlimitedNow && tradeTrim) {
-        tradeIdForFreeRef.current = tradeTrim;
-        await acceptWithoutPayment("unlimited_tier");
-        setBusy(false);
-        return;
-      }
-
       if (tradeIdForCheck) {
         const cr = await fetch(
           `/api/leads/${encodeURIComponent(leadId)}/check-free-lead?tradeId=${encodeURIComponent(tradeIdForCheck)}`,
-          { cache: "no-store" },
+          { cache: "no-store" }
         );
         const cj = (await cr.json()) as { canUseFree?: boolean };
         if (cr.ok && cj.canUseFree === true) {
@@ -286,7 +132,6 @@ export function LeadAcceptPayment({
       }
 
       await runStripeCheckout();
-      setBusy(false);
     } catch (err) {
       console.error("Accept lead failed:", err);
       setBusy(false);
@@ -294,25 +139,53 @@ export function LeadAcceptPayment({
   };
 
   const confirmFreeAccept = async () => {
-    tradeIdForFreeRef.current =
-      tradeIdForFreeRef.current.trim() ||
-      (typeof window !== "undefined"
-        ? (window.localStorage.getItem(TS_ID_KEY) ?? "").trim()
-        : "");
-    await acceptWithoutPayment("free_first");
+    const name = tradesmanName.trim();
+    const email = tradesmanEmail.trim();
+    const tid = tradeIdForFreeRef.current.trim();
+    if (!name || !email || !tid) {
+      setFreeDialogOpen(false);
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const r = await fetch(
+        `/api/leads/${encodeURIComponent(leadId)}/accept-free`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tradespersonId: tid,
+            fullName: name,
+            email,
+          }),
+        }
+      );
+      const j = (await r.json().catch(() => ({}))) as { error?: string };
+      if (!r.ok) {
+        setBusy(false);
+        setFreeDialogOpen(false);
+        window.alert(j.error ?? "Could not accept this lead for free. Try again or use checkout.");
+        return;
+      }
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(FREE_LEAD_KEY, "1");
+      }
+      persistIdentity(name, email);
+      onPaymentSucceeded();
+      window.location.assign(
+        `/leads/accept-success?free=true&leadId=${encodeURIComponent(leadId)}`
+      );
+    } catch (e) {
+      console.error(e);
+      setBusy(false);
+      setFreeDialogOpen(false);
+      window.alert("Something went wrong. Please try again.");
+    }
   };
 
   const canContinue =
     tradesmanName.trim().length > 0 && tradesmanEmail.trim().length > 0;
-
-  const primaryButtonLabel =
-    busy || confirmExclusive.isPending
-      ? "Preparing…"
-      : unlimitedActive
-        ? "Accept Lead (Included in Subscription)"
-        : subscription.loading
-          ? "Checking plan…"
-          : `Accept Lead — £${TRADESMAN_LEAD_PRICE_GBP}`;
 
   return (
     <>
@@ -349,45 +222,12 @@ export function LeadAcceptPayment({
 
       <div className="space-y-2 rounded-lg border border-border/80 bg-muted/15 p-3">
         <p className="text-sm font-medium text-foreground">
-          {unlimitedActive ? (
-            <>
-              Unlimited plan —{" "}
-              <span className="text-emerald-600 dark:text-emerald-400">
-                this acceptance is included
-              </span>
-            </>
-          ) : (
-            <>
-              Accept this lead (£{TRADESMAN_LEAD_PRICE_GBP} flat fee after your first free
-              one)
-            </>
-          )}
+          Accept this lead (£{TRADESMAN_LEAD_PRICE_GBP} flat fee after your first
+          free one)
         </p>
         <p className="text-xs text-muted-foreground">
-          {unlimitedActive ? (
-            <>
-              Stripe checkout won&apos;t run — unlimited subscribers unlock matched leads within
-              their monthly plan limits.
-            </>
-          ) : (
-            <>
-              You&apos;ll complete payment on Stripe&apos;s secure checkout — unless this is
-              your <strong>first lead</strong>, which is free.
-              {subscription.loading ? null : (
-                <>
-                  {" "}
-                  On{" "}
-                  <a
-                    href="/subscription"
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    Unlimited
-                  </a>
-                  , checkouts bypass when your subscription is active.
-                </>
-              )}
-            </>
-          )}
+          You&apos;ll complete payment on Stripe&apos;s secure checkout — unless
+          this is your <strong>first lead</strong>, which is free.
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="grid gap-2 sm:col-span-2 sm:max-w-sm">
@@ -421,20 +261,13 @@ export function LeadAcceptPayment({
         <Button
           type="button"
           variant="secondary"
-          className={`w-full ${
-            unlimitedActive
-              ? "bg-emerald-600 text-white hover:bg-emerald-700"
-              : ""
-          }`}
-          disabled={
-            busy ||
-            confirmExclusive.isPending ||
-            !canContinue ||
-            subscription.loading
-          }
+          className="w-full"
+          disabled={busy || confirmExclusive.isPending || !canContinue}
           onClick={() => void handleAcceptLead()}
         >
-          {primaryButtonLabel}
+          {busy || confirmExclusive.isPending
+            ? "Preparing…"
+            : `Accept this lead — £${TRADESMAN_LEAD_PRICE_GBP}`}
         </Button>
       </div>
     </>

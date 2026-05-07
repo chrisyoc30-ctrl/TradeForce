@@ -84,13 +84,6 @@ export function LeadScoringBoard() {
               >
                 View pricing
               </Link>
-              {" · "}
-              <Link
-                href="/subscription"
-                className="font-medium text-foreground/90 underline underline-offset-2 hover:text-foreground"
-              >
-                Subscription
-              </Link>
             </p>
             {isFetching && !isLoading && (
               <p className="pt-1 text-xs text-amber-400/80">Refreshing…</p>

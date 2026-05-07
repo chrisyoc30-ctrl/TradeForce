@@ -10,7 +10,6 @@ import {
   sendPaymentConfirmationEmail,
 } from "@/emails/email-service";
 import { getStripe } from "@/lib/stripe-server";
-import { linkTradespersonStripeInApi } from "@/lib/link-tradesperson-stripe-api";
 import { recordLeadPaymentInApi } from "@/lib/record-lead-payment";
 import { TRADESMAN_LEAD_PRICE_GBP } from "@/lib/pricing";
 import type { Lead } from "@/types/lead";
@@ -115,54 +114,6 @@ export async function POST(req: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.mode === "subscription") {
-      const tradeId =
-        session.client_reference_id?.trim() ||
-        (
-          typeof session.metadata?.tradesperson_id === "string"
-            ? session.metadata.tradesperson_id.trim()
-            : ""
-        ) ||
-        (
-          typeof session.metadata?.tradespersonId === "string"
-            ? session.metadata.tradespersonId.trim()
-            : ""
-        );
-      const customerRaw = session.customer;
-      const customerId =
-        typeof customerRaw === "string"
-          ? customerRaw
-          : customerRaw &&
-              typeof customerRaw === "object" &&
-              typeof (customerRaw as { id?: string }).id === "string"
-            ? (customerRaw as { id: string }).id
-            : "";
-      const subRaw = session.subscription;
-      const subscriptionId =
-        typeof subRaw === "string"
-          ? subRaw
-          : subRaw &&
-              typeof subRaw === "object" &&
-              typeof (subRaw as { id?: string }).id === "string"
-            ? (subRaw as { id: string }).id
-            : "";
-      if (tradeId && customerId) {
-        const r = await linkTradespersonStripeInApi({
-          tradeId,
-          stripeCustomerId: customerId,
-          stripeSubscriptionId: subscriptionId || undefined,
-        });
-        if (!r.ok) {
-          console.error(
-            "[stripe webhook] subscription checkout: could not link Stripe customer",
-            r.status,
-            r.body,
-          );
-        }
-      }
-      return NextResponse.json({ received: true });
-    }
-
     const leadId = session.client_reference_id?.trim();
     const paymentIntentId = paymentIntentIdFromCheckoutSession(session);
     if (leadId && paymentIntentId) {
