@@ -83,6 +83,8 @@ export interface MatchedTradesman {
   trade: string;
   matchScore: number;
   skills: string[];
+  verificationStatus?: string;
+  verificationBadges?: string[];
 }
 
 export interface Bid {

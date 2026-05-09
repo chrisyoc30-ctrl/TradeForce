@@ -65,6 +65,9 @@ export default function AvailableJobsPage() {
   const [idGateReady, setIdGateReady] = useState(false);
   const [idSubmitting, setIdSubmitting] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(true);
+  const [verificationBadgeCount, setVerificationBadgeCount] = useState<
+    string | null
+  >(null);
 
   const sessionOk = sessionName !== null;
 
@@ -118,6 +121,39 @@ export default function AvailableJobsPage() {
   useEffect(() => {
     void loadBootstrap();
   }, [loadBootstrap]);
+
+  useEffect(() => {
+    if (!sessionOk || typeof window === "undefined") {
+      setVerificationBadgeCount(null);
+      return;
+    }
+    const id = (window.localStorage.getItem(TRADESPERSON_ID_KEY) ?? "").trim();
+    const base = getPublicApiBaseUrl();
+    if (!id || !base) {
+      setVerificationBadgeCount(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `${base}/api/tradesperson/${encodeURIComponent(id)}/verification-status`,
+          { cache: "no-store" },
+        );
+        const data = (await res.json()) as { verification_badges?: unknown };
+        if (cancelled || !res.ok) return;
+        const badges = Array.isArray(data.verification_badges)
+          ? data.verification_badges
+          : [];
+        setVerificationBadgeCount(`${badges.length}/3`);
+      } catch {
+        if (!cancelled) setVerificationBadgeCount(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionOk]);
 
   function persist(name: string, phone: string) {
     setBidderName(name);
@@ -261,6 +297,20 @@ export default function AvailableJobsPage() {
               >
                 Sign out (clear saved ID)
               </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/verification"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                Verification documents
+                {verificationBadgeCount ? (
+                  <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                    {verificationBadgeCount}
+                  </span>
+                ) : null}
+              </Link>
             </div>
 
             <Card>

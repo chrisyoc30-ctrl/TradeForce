@@ -19,6 +19,7 @@ import {
   tradesLeadLocationPreview,
 } from "@/components/leads/lead-helpers";
 import { LeadAcceptPayment } from "@/components/leads/lead-accept-payment";
+import { MatchedTradespersonPanel } from "@/components/leads/matched-tradesperson-panel";
 import { cn } from "@/lib/utils";
 import { readHomeownerSessionPhone } from "@/lib/auth-nav";
 
@@ -222,6 +223,13 @@ export default function LeadDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {matched !== "" && (unlocked || isMatchedTradeViewer) ? (
+          <MatchedTradespersonPanel
+            leadId={leadId}
+            matchedTradespersonId={matched}
+          />
+        ) : null}
 
         {showMatchedTradeCheckout ? (
           <section className="space-y-2 border-t border-border/80 pt-8">

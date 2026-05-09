@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { trpc } from "@/trpc/react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,10 +14,32 @@ import { Label } from "@/components/ui/label";
 export default function AdminAnalyticsPage() {
   const router = useRouter();
   const [secret, setSecret] = useState("");
+  const [pendingVerification, setPendingVerification] = useState<number | null>(
+    null,
+  );
   const q = trpc.admin.getMetrics.useQuery(
     { adminSecret: secret || undefined },
     { enabled: false }
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/verification/pending");
+        const data = (await res.json()) as { pending_count?: number };
+        if (cancelled || !res.ok) return;
+        setPendingVerification(
+          typeof data.pending_count === "number" ? data.pending_count : 0,
+        );
+      } catch {
+        if (!cancelled) setPendingVerification(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="min-h-dvh bg-background px-4 py-10 text-foreground">
@@ -49,6 +72,19 @@ export default function AdminAnalyticsPage() {
           >
             Log out
           </Button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/admin/verification"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Verification reviews
+              {pendingVerification !== null && pendingVerification > 0 ? (
+                <Badge variant="destructive" className="tabular-nums">
+                  {pendingVerification}
+                </Badge>
+              ) : null}
+            </Link>
+          </div>
         </div>
 
         <Card>
