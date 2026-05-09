@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, Sparkles, Users } from "lucide-react";
+import { CheckCircle, Home, Sparkles, Users } from "lucide-react";
 
 import {
   postJobOrangeSolidCtaClasses,
@@ -47,6 +47,25 @@ export function HomeHero() {
         <p className="mt-6 max-w-2xl text-pretty text-lg text-slate-200 sm:text-xl">
           AI-Powered Lead Matching. Quality Projects. Instant Payments.
         </p>
+
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-slate-300/90">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="size-5 shrink-0 text-emerald-400" aria-hidden />
+            <span>Companies House checks</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="size-5 shrink-0 text-emerald-400" aria-hidden />
+            <span>ID verification (reviewed)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="size-5 shrink-0 text-emerald-400" aria-hidden />
+            <span>Insurance verification (reviewed)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle className="size-5 shrink-0 text-emerald-400" aria-hidden />
+            <span>Glasgow-focused</span>
+          </div>
+        </div>
 
         <div className="mt-10 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-start">
           <Link

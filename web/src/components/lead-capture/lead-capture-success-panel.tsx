@@ -55,20 +55,11 @@ export function LeadCaptureSuccessPanel({ data, onPostAnother }: Props) {
           <Check className="h-8 w-8 text-emerald-400" strokeWidth={3} />
         </div>
         <h2 className="text-2xl font-bold tracking-tight">
-          Your job has been submitted!
+          Job posted successfully
         </h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          {scored ? (
-            <>
-              We&apos;ve analysed your project and assigned a priority grade — here&apos;s
-              what trades see and what happens next.
-            </>
-          ) : (
-            <>
-              Your request is in — you&apos;ll see your AI grade here once scoring
-              finishes. Here&apos;s what happens next.
-            </>
-          )}
+          We&apos;re matching you with a Glasgow tradesperson now. Here&apos;s what happens next —
+          and how verification protects you.
         </p>
       </div>
 
@@ -126,14 +117,68 @@ export function LeadCaptureSuccessPanel({ data, onPostAnother }: Props) {
         </p>
       )}
 
-      <div className="rounded-lg border border-blue-500/25 bg-blue-500/5 p-4 text-left dark:bg-blue-500/10">
-        <p className="font-medium text-foreground">What happens next</p>
-        <ol className="mt-3 list-inside list-decimal space-y-2 text-sm text-muted-foreground">
-          <li>Matched tradespeople are notified about your job.</li>
-          <li>Expect replies within around 24 hours.</li>
-          <li>You compare quotes and choose who to hire.</li>
-          <li>You pay the tradesperson for the work directly — TradeScore stays out of job pricing.</li>
-        </ol>
+      <div className="rounded-lg border border-sky-500/25 bg-sky-500/5 p-5 text-left dark:bg-sky-500/10">
+        <p className="font-semibold text-foreground">What happens next</p>
+        <div className="mt-4 space-y-4">
+          <div className="flex gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#FF6B35] text-xs font-bold text-white">
+              1
+            </div>
+            <div>
+              <p className="font-medium text-foreground">We verify the match</p>
+              <p className="text-sm text-muted-foreground">
+                Our engine finds the best-fit Glasgow tradesperson. You&apos;ll see Companies House
+                and any completed ID / insurance badges on their profile when you view the job.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#FF6B35] text-xs font-bold text-white">
+              2
+            </div>
+            <div>
+              <p className="font-medium text-foreground">They accept your job</p>
+              <p className="text-sm text-muted-foreground">
+                They review your brief and confirm they can take it on. Your phone and email stay
+                private until this step completes.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#FF6B35] text-xs font-bold text-white">
+              3
+            </div>
+            <div>
+              <p className="font-medium text-foreground">They contact you directly</p>
+              <p className="text-sm text-muted-foreground">
+                After acceptance, they can reach you to arrange a visit and quote — still no
+                bidding war from a dozen random callers.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-white/10 bg-muted/25 p-4 text-sm">
+        <p className="font-medium text-foreground">Why TradeScore is different</p>
+        <ul className="mt-2 space-y-1.5 text-muted-foreground">
+          <li className="flex gap-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-emerald-400" aria-hidden />
+            <span>Verification signals you can read on the matched profile</span>
+          </li>
+          <li className="flex gap-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-emerald-400" aria-hidden />
+            <span>Details stay private until the match accepts</span>
+          </li>
+          <li className="flex gap-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-emerald-400" aria-hidden />
+            <span>One matched tradesperson per job — no auction chaos</span>
+          </li>
+          <li className="flex gap-2">
+            <Check className="mt-0.5 size-4 shrink-0 text-emerald-400" aria-hidden />
+            <span>Glasgow-focused for local accountability</span>
+          </li>
+        </ul>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-center">

@@ -9,7 +9,7 @@ const routes: { path: string; changeFrequency: MetadataRoute.Sitemap[0]["changeF
     { path: "/terms", changeFrequency: "yearly", priority: 0.6 },
     { path: "/privacy", changeFrequency: "yearly", priority: 0.6 },
     { path: "/pricing", changeFrequency: "monthly", priority: 0.85 },
-    { path: "/lead-capture", changeFrequency: "weekly", priority: 0.9 },
+    { path: "/how-we-verify", changeFrequency: "monthly", priority: 0.88 },
     { path: "/lead-scoring", changeFrequency: "weekly", priority: 0.9 },
     { path: "/homeowner-dashboard", changeFrequency: "monthly", priority: 0.7 },
     { path: "/available-jobs", changeFrequency: "weekly", priority: 0.85 },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, ShieldCheck } from "lucide-react";
 
 import { ProminentNativeSelect } from "@/components/ui/prominent-native-select";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,36 @@ export function LeadCapture() {
           homeowners. We score every request so the right pros see it first.
         </p>
       </header>
+
+      <div className="mb-8 shrink-0 rounded-xl border border-sky-500/35 bg-sky-500/10 p-5 dark:bg-sky-500/10">
+        <div className="flex gap-3">
+          <ShieldCheck className="mt-0.5 size-6 shrink-0 text-sky-400" aria-hidden />
+          <div>
+            <h2 className="font-semibold text-foreground">
+              Your job goes to ONE verified tradesperson
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              We match exclusively — no pile-on of quotes from strangers. Trades go through
+              Companies House checks; ID and insurance badges appear only after our review when
+              documents are submitted.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <CheckCircle className="size-3 text-emerald-400" aria-hidden />
+                Companies House checks
+              </span>
+              <span className="flex items-center gap-1">
+                <CheckCircle className="size-3 text-emerald-400" aria-hidden />
+                ID review (when uploaded)
+              </span>
+              <span className="flex items-center gap-1">
+                <CheckCircle className="size-3 text-emerald-400" aria-hidden />
+                Insurance review (when uploaded)
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <form
         className="flex flex-1 flex-col gap-5 pb-[max(env(safe-area-inset-bottom),1rem)]"
@@ -178,6 +208,10 @@ export function LeadCapture() {
               {fieldErrors.phone}
             </p>
           ) : null}
+          <p className="text-xs text-muted-foreground">
+            We only share this with your matched tradesperson after they accept your job and pay
+            our matching fee.
+          </p>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="postcode">Postcode *</Label>
@@ -201,6 +235,10 @@ export function LeadCapture() {
               {fieldErrors.postcode}
             </p>
           ) : null}
+          <p className="text-xs text-muted-foreground">
+            Full location detail stays masked on public listings; your matched tradesperson sees
+            more after they commit to the job.
+          </p>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="email">Email</Label>
@@ -318,6 +356,14 @@ export function LeadCapture() {
             {create.error.message}
           </p>
         ) : null}
+
+        <div className="rounded-lg border border-white/10 bg-muted/30 p-4 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">Your details are protected</p>
+          <p className="mt-1 text-xs leading-relaxed">
+            Contact details are not shared with tradespeople until the matched tradesperson accepts
+            and pays — so you avoid spam and ring-rounds.
+          </p>
+        </div>
 
         <div className="sticky bottom-[max(env(safe-area-inset-bottom),12px)] z-40 mt-auto border-t border-border/70 bg-background/95 py-4 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-background/90 dark:shadow-black/40 supports-[backdrop-filter]:backdrop-blur-md">
           <Button

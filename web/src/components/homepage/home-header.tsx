@@ -129,6 +129,12 @@ export function HomeHeader() {
           aria-label="Primary"
         >
           <Link
+            href="/how-we-verify"
+            className="shrink-0 transition-colors hover:text-foreground"
+          >
+            How we verify
+          </Link>
+          <Link
             href="/pricing"
             className="shrink-0 transition-colors hover:text-foreground"
           >
@@ -180,6 +186,13 @@ export function HomeHeader() {
           className="border-b border-white/5 bg-zinc-950/95 px-4 py-4 md:hidden"
         >
           <nav className="flex flex-col gap-3 text-sm" aria-label="Primary mobile">
+            <Link
+              href="/how-we-verify"
+              className="text-foreground/90"
+              onClick={() => setOpen(false)}
+            >
+              How we verify
+            </Link>
             <Link
               href="/pricing"
               className="text-foreground/90"

@@ -4,6 +4,7 @@ import { FinalCta } from "@/components/homepage/final-cta";
 import { HomeFooter } from "@/components/homepage/home-footer";
 import { HomeHero } from "@/components/homepage/hero";
 import { HowItWorks } from "@/components/homepage/how-it-works";
+import { HowWeVerifySection } from "@/components/homepage/how-we-verify-section";
 import { PricingPreview } from "@/components/homepage/pricing-preview";
 import { HomeStructuredData } from "@/components/homepage/structured-data";
 import { ValuePropositions } from "@/components/homepage/value-propositions";
@@ -12,10 +13,11 @@ const siteUrl = "https://tradescore.uk";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "TradeScore | Stop Competing With 10 Other Glasgow Trades",
+    absolute:
+      "TradeScore — Verified Glasgow Tradespeople | One Job, One Matched Trade",
   },
   description:
-    "TradeScore connects Glasgow homeowners with verified local tradespeople. Post a job free — trades pay £25 per lead, no commission.",
+    "Post free: get matched to ONE Glasgow tradesperson. Companies House checks plus optional ID & insurance review. Your details stay private until the match accepts.",
   keywords: [
     "Glasgow trades",
     "lead matching",
@@ -25,9 +27,9 @@ export const metadata: Metadata = {
     "TradeScore",
   ],
   openGraph: {
-    title: "TradeScore | AI Lead Matching for Glasgow",
+    title: "TradeScore — Verified Glasgow trades | One matched trade per job",
     description:
-      "Quality projects. Transparent pricing. Stop competing with ten other trades for the same job.",
+      "Companies House checks, optional ID & insurance review, exclusive matching. Free job posts for homeowners.",
     url: siteUrl,
     siteName: "TradeScore",
     locale: "en_GB",
@@ -35,9 +37,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "TradeScore | Glasgow trades & homeowners",
+    title: "TradeScore — verified Glasgow tradespeople",
     description:
-      "AI-powered matching. Free for homeowners. £25 per lead for trades — first lead free.",
+      "One job, one matched trade. Checks + privacy-first matching — free for homeowners.",
   },
   alternates: {
     canonical: siteUrl,
@@ -53,6 +55,7 @@ export default function HomePage() {
           <HomeHero />
           <ValuePropositions />
           <HowItWorks />
+          <HowWeVerifySection />
           <PricingPreview />
           <FinalCta />
         </main>
