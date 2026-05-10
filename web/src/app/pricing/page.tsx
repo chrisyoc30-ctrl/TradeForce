@@ -16,6 +16,10 @@ import { cn } from "@/lib/utils";
 const UNLIMITED_CHECKOUT_URL =
   process.env.NEXT_PUBLIC_STRIPE_UNLIMITED_CHECKOUT_URL?.trim() || "";
 
+const UNLIMITED_CONTACT_MAILTO =
+  "mailto:hello@tradescore.uk?subject=" +
+  encodeURIComponent("TradeScore Unlimited Subscription Request");
+
 export const metadata = {
   title: "Pricing | TradeScore",
   description:
@@ -115,7 +119,7 @@ export default function PricingPage() {
                 ]}
               />
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex flex-col gap-2">
               {UNLIMITED_CHECKOUT_URL ? (
                 <Link
                   href={UNLIMITED_CHECKOUT_URL}
@@ -127,15 +131,20 @@ export default function PricingPage() {
                   Subscribe →
                 </Link>
               ) : (
-                <div className="w-full rounded-lg border border-dashed border-amber-500/35 bg-muted/20 p-4 text-center text-xs text-muted-foreground">
-                  <p>
-                    Stripe subscription checkout URL is not set yet. Configure{" "}
-                    <code className="rounded bg-muted px-1 py-px text-[10px] text-foreground/90">
-                      NEXT_PUBLIC_STRIPE_UNLIMITED_CHECKOUT_URL
-                    </code>{" "}
-                    for the live subscribe button.
+                <>
+                  <a
+                    href={UNLIMITED_CONTACT_MAILTO}
+                    className={cn(
+                      buttonVariants({ size: "default" }),
+                      "w-full justify-center bg-amber-500 font-semibold text-slate-950 hover:bg-amber-400",
+                    )}
+                  >
+                    Contact us to subscribe
+                  </a>
+                  <p className="text-center text-xs text-muted-foreground">
+                    £99/month subscription launching this week. Email to be first to subscribe.
                   </p>
-                </div>
+                </>
               )}
             </CardFooter>
           </Card>
