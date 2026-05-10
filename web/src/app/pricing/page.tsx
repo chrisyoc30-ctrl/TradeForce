@@ -17,7 +17,7 @@ const UNLIMITED_CHECKOUT_URL =
   process.env.NEXT_PUBLIC_STRIPE_UNLIMITED_CHECKOUT_URL?.trim() || "";
 
 const UNLIMITED_CONTACT_MAILTO =
-  "mailto:hello@tradescore.uk?subject=" +
+  "mailto:support@tradescore.uk?subject=" +
   encodeURIComponent("TradeScore Unlimited Subscription Request");
 
 export const metadata = {

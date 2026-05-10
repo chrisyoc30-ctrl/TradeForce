@@ -52,7 +52,7 @@
       "name": "TradeScore Glasgow",
       "description": "AI lead scoring for Glasgow tradespeople. Stop wasting van time on tyre-kickers.",
       "url": "https://tradescoreglasgow.com/",
-      "email": "hello@tradescoreglasgow.com",
+      "email": "support@tradescore.uk",
       "areaServed": {
         "@type": "City",
         "name": "Glasgow",
