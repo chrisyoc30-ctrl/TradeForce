@@ -21,14 +21,32 @@ import { LEAD_CAPTURE_BUDGET_RANGE_OPTIONS } from "@/lib/quote-estimate";
 
 const PROJECT_TYPE_OPTIONS: readonly { value: string; label: string }[] = [
   { value: "", label: "Select project type" },
+
+  // Common trades
   { value: "Plumbing", label: "Plumbing" },
   { value: "Electrical", label: "Electrical" },
-  { value: "Heating & gas", label: "Heating & gas" },
-  { value: "Bathroom or kitchen", label: "Bathroom or kitchen" },
+  { value: "Heating & Gas", label: "Heating & Gas" },
+  { value: "Joinery / Carpentry", label: "Joinery / Carpentry" },
+  { value: "Painting & Decorating", label: "Painting & Decorating" },
+  { value: "Plastering", label: "Plastering" },
   { value: "Roofing", label: "Roofing" },
-  { value: "Joinery / carpentry", label: "Joinery / carpentry" },
-  { value: "General building", label: "General building" },
-  { value: "Other", label: "Other" },
+  { value: "Flooring", label: "Flooring" },
+
+  // Installation trades
+  { value: "Bathroom Installation", label: "Bathroom Installation" },
+  { value: "Kitchen Installation", label: "Kitchen Installation" },
+  { value: "Windows & Doors", label: "Windows & Doors" },
+  { value: "Tiling", label: "Tiling" },
+
+  // Outdoor
+  { value: "Driveway / Paving", label: "Driveway / Paving" },
+  { value: "Landscaping / Gardening", label: "Landscaping / Gardening" },
+
+  // Building
+  { value: "Building / Extensions", label: "Building / Extensions" },
+  { value: "Rendering", label: "Rendering" },
+
+  { value: "Other", label: "Other (describe in details)" },
 ] as const;
 
 const emptyForm = {
