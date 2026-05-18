@@ -20,6 +20,7 @@ import {
 } from "@/components/leads/lead-helpers";
 import { getPublicApiBaseUrl } from "@/lib/public-api-base";
 import { cn } from "@/lib/utils";
+import type { Lead } from "@/types/lead";
 
 const PHONE_KEY = "tradescore-tradesman-phone";
 const NAME_KEY = "tradescore-tradesman-name";
@@ -29,6 +30,10 @@ function firstNameFromFull(full: string) {
   const t = full.trim();
   if (!t) return "there";
   return t.split(/\s+/)[0] ?? "there";
+}
+
+function sortByAiScore(leads: Lead[]) {
+  return [...leads].sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0));
 }
 
 async function fetchValidateTradesId(id: string) {
@@ -59,6 +64,7 @@ export default function AvailableJobsPage() {
   const [noteByLead, setNoteByLead] = useState<Record<string, string>>({});
 
   const [idInput, setIdInput] = useState("");
+  const [activeTradeId, setActiveTradeId] = useState("");
   const [sessionName, setSessionName] = useState<string | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
   const [invalidId, setInvalidId] = useState(false);
@@ -72,24 +78,29 @@ export default function AvailableJobsPage() {
   const sessionOk = sessionName !== null;
 
   const utils = trpc.useUtils();
-  const { data: projects = [], isLoading } = trpc.tradesman.getMatchedProjects.useQuery(
-    undefined,
+  const { data: myLeads, isLoading } = trpc.tradesman.getMyLeads.useQuery(
+    { tradespersonId: activeTradeId },
     {
       refetchInterval: 10_000,
-      enabled: idGateReady && sessionOk,
+      enabled: idGateReady && sessionOk && activeTradeId.length > 0,
     },
   );
 
   const submitBid = trpc.bids.submit.useMutation({
     onSuccess: (_, vars) => {
       void utils.bids.getForLead.invalidate({ leadId: vars.leadId });
-      void utils.tradesman.getMatchedProjects.invalidate();
+      void utils.tradesman.getMyLeads.invalidate();
     },
   });
 
-  const sorted = useMemo(
-    () => [...projects].sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0)),
-    [projects],
+  const exclusiveMatches = useMemo(
+    () => sortByAiScore(myLeads?.exclusive_matches ?? []),
+    [myLeads?.exclusive_matches],
+  );
+
+  const eligibleOpen = useMemo(
+    () => sortByAiScore(myLeads?.eligible_open_leads ?? []),
+    [myLeads?.eligible_open_leads],
   );
 
   const loadBootstrap = useCallback(async () => {
@@ -102,12 +113,15 @@ export default function AvailableJobsPage() {
       setBootstrapping(false);
       return;
     }
-    setIdInput(stored);
-    const v = await fetchValidateTradesId(stored);
+    const tid = stored.trim();
+    setIdInput(tid);
+    setActiveTradeId(tid);
+    const v = await fetchValidateTradesId(tid);
     if (v.kind === "ok") {
       setSessionName(v.name);
     } else {
       window.localStorage.removeItem(TRADESPERSON_ID_KEY);
+      setActiveTradeId("");
       if (v.kind === "config") {
         setConfigError("App is not configured with NEXT_PUBLIC_API_URL.");
       } else {
@@ -169,6 +183,7 @@ export default function AvailableJobsPage() {
       window.localStorage.removeItem(TRADESPERSON_ID_KEY);
     }
     setSessionName(null);
+    setActiveTradeId("");
     setIdInput("");
     setConfigError(null);
     setInvalidId(false);
@@ -188,8 +203,8 @@ export default function AvailableJobsPage() {
             Available jobs
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Open leads from the board. Place a bid — homeowners see it on the
-            project page.
+            Your exclusive matches appear first. Browse other open jobs in your
+            trade below.
           </p>
         </div>
 
@@ -253,18 +268,18 @@ export default function AvailableJobsPage() {
                       return;
                     }
                     if (v.kind === "ok") {
+                      const tid = idInput.trim();
                       if (typeof window !== "undefined") {
-                        window.localStorage.setItem(
-                          TRADESPERSON_ID_KEY,
-                          idInput.trim(),
-                        );
+                        window.localStorage.setItem(TRADESPERSON_ID_KEY, tid);
                       }
+                      setActiveTradeId(tid);
                       setSessionName(v.name);
                       return;
                     }
                     if (typeof window !== "undefined") {
                       window.localStorage.removeItem(TRADESPERSON_ID_KEY);
                     }
+                    setActiveTradeId("");
                     setInvalidId(true);
                   } finally {
                     setIdSubmitting(false);
@@ -344,130 +359,204 @@ export default function AvailableJobsPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Loading leads…
               </div>
-            ) : sorted.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No open leads right now.{" "}
-                <Link href="/lead-scoring" className="underline">
-                  Lead scoring board
-                </Link>
-              </p>
             ) : (
-              <ul className="space-y-4">
-                {sorted.map((lead) => {
-                  const g = gradeClass(lead.aiGrade);
-                  const lid = String(lead.id);
-                  const amt =
-                    amountByLead[lid] ||
-                    String(
-                      Math.max(
-                        100,
-                        Math.round(
-                          (typeof lead.budget === "number"
-                            ? lead.budget
-                            : parseFloat(String(lead.budget ?? "0")) || 800) * 0.92,
-                        ),
-                      ),
-                    );
-                  const note =
-                    noteByLead[lid] ?? "Happy to quote and schedule a visit.";
+              <div className="space-y-10">
+                <section className="space-y-4">
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight">
+                      Your Matched Jobs
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Exclusive leads assigned to you — accept within 73 hours.
+                    </p>
+                  </div>
+                  {exclusiveMatches.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No exclusive matches right now.
+                    </p>
+                  ) : (
+                    <ul className="space-y-4">
+                      {exclusiveMatches.map((lead) => {
+                        const g = gradeClass(lead.aiGrade);
+                        const lid = String(lead.id);
+                        return (
+                          <Card key={lid}>
+                            <CardContent className="space-y-3 p-4">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                  <p className="font-medium">{projectTypeLabel(lead)}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {budgetLabel(lead)} · {tradesLeadLocationPreview(lead)} ·{" "}
+                                    {timelineLabel(lead)}
+                                  </p>
+                                </div>
+                                <span
+                                  className={cn(
+                                    "inline-flex h-10 min-w-10 items-center justify-center rounded-md px-2 text-lg font-bold",
+                                    g.badge,
+                                  )}
+                                >
+                                  {lead.aiGrade ?? "—"}
+                                </span>
+                              </div>
+                              <p className="line-clamp-3 text-sm text-muted-foreground">
+                                {String(lead.description ?? "")}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="outline">
+                                  Score {lead.aiScore ?? "—"}/100
+                                </Badge>
+                              </div>
+                              <Link
+                                href={`/leads/${encodeURIComponent(lid)}`}
+                                className={cn(
+                                  buttonVariants({ size: "lg" }),
+                                  "w-full sm:w-auto",
+                                )}
+                              >
+                                Review & accept
+                              </Link>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </section>
 
-                  return (
-                    <Card key={lid}>
-                      <CardContent className="space-y-3 p-4">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <p className="font-medium">{projectTypeLabel(lead)}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {budgetLabel(lead)} · {tradesLeadLocationPreview(lead)} ·{" "}
-                              {timelineLabel(lead)}
-                            </p>
-                          </div>
-                          <span
-                            className={cn(
-                              "inline-flex h-10 min-w-10 items-center justify-center rounded-md px-2 text-lg font-bold",
-                              g.badge,
-                            )}
-                          >
-                            {lead.aiGrade ?? "—"}
-                          </span>
-                        </div>
-                        <p className="line-clamp-3 text-sm text-muted-foreground">
-                          {String(lead.description ?? "")}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline">
-                            Score {lead.aiScore ?? "—"}/100
-                          </Badge>
-                          <Link
-                            href={`/leads/${encodeURIComponent(lid)}`}
-                            className={cn(
-                              buttonVariants({ variant: "ghost", size: "sm" }),
-                              "h-8",
-                            )}
-                          >
-                            Homeowner view
-                          </Link>
-                        </div>
-                        <div className="grid gap-2 border-t border-border/60 pt-3 sm:grid-cols-2">
-                          <div className="grid gap-2">
-                            <Label htmlFor={`amt-${lid}`}>Your bid (£)</Label>
-                            <Input
-                              id={`amt-${lid}`}
-                              inputMode="decimal"
-                              value={amt}
-                              onChange={(e) =>
-                                setAmountByLead((s) => ({
-                                  ...s,
-                                  [lid]: e.target.value,
-                                }))
-                              }
-                            />
-                          </div>
-                          <div className="grid gap-2 sm:col-span-2">
-                            <Label htmlFor={`note-${lid}`}>Note</Label>
-                            <Textarea
-                              id={`note-${lid}`}
-                              value={note}
-                              onChange={(e) =>
-                                setNoteByLead((s) => ({
-                                  ...s,
-                                  [lid]: e.target.value,
-                                }))
-                              }
-                              className="min-h-[72px]"
-                            />
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          disabled={
-                            submitBid.isPending ||
-                            bidderPhone.trim().length < 5 ||
-                            !bidderName.trim()
-                          }
-                          onClick={() => {
-                            const n = parseFloat(amt);
-                            if (Number.isNaN(n) || n <= 0) return;
-                            submitBid.mutate({
-                              leadId: lid,
-                              amount: n,
-                              description: note,
-                              bidderName: bidderName.trim(),
-                              bidderPhone: bidderPhone.trim(),
-                            });
-                          }}
-                        >
-                          {submitBid.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            "Place bid"
-                          )}
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </ul>
+                <section className="space-y-4">
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-tight">
+                      Other Jobs Available in Your Trade
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Open board — place a bid if you want additional work.
+                    </p>
+                  </div>
+                  {eligibleOpen.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No other open jobs matching your trade right now.
+                    </p>
+                  ) : (
+                    <ul className="space-y-4">
+                      {eligibleOpen.map((lead) => {
+                        const g = gradeClass(lead.aiGrade);
+                        const lid = String(lead.id);
+                        const amt =
+                          amountByLead[lid] ||
+                          String(
+                            Math.max(
+                              100,
+                              Math.round(
+                                (typeof lead.budget === "number"
+                                  ? lead.budget
+                                  : parseFloat(String(lead.budget ?? "0")) || 800) * 0.92,
+                              ),
+                            ),
+                          );
+                        const note =
+                          noteByLead[lid] ?? "Happy to quote and schedule a visit.";
+
+                        return (
+                          <Card key={lid}>
+                            <CardContent className="space-y-3 p-4">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                  <p className="font-medium">{projectTypeLabel(lead)}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {budgetLabel(lead)} · {tradesLeadLocationPreview(lead)} ·{" "}
+                                    {timelineLabel(lead)}
+                                  </p>
+                                </div>
+                                <span
+                                  className={cn(
+                                    "inline-flex h-10 min-w-10 items-center justify-center rounded-md px-2 text-lg font-bold",
+                                    g.badge,
+                                  )}
+                                >
+                                  {lead.aiGrade ?? "—"}
+                                </span>
+                              </div>
+                              <p className="line-clamp-3 text-sm text-muted-foreground">
+                                {String(lead.description ?? "")}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="outline">
+                                  Score {lead.aiScore ?? "—"}/100
+                                </Badge>
+                                <Link
+                                  href={`/leads/${encodeURIComponent(lid)}`}
+                                  className={cn(
+                                    buttonVariants({ variant: "ghost", size: "sm" }),
+                                    "h-8",
+                                  )}
+                                >
+                                  Homeowner view
+                                </Link>
+                              </div>
+                              <div className="grid gap-2 border-t border-border/60 pt-3 sm:grid-cols-2">
+                                <div className="grid gap-2">
+                                  <Label htmlFor={`amt-${lid}`}>Your bid (£)</Label>
+                                  <Input
+                                    id={`amt-${lid}`}
+                                    inputMode="decimal"
+                                    value={amt}
+                                    onChange={(e) =>
+                                      setAmountByLead((s) => ({
+                                        ...s,
+                                        [lid]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div className="grid gap-2 sm:col-span-2">
+                                  <Label htmlFor={`note-${lid}`}>Note</Label>
+                                  <Textarea
+                                    id={`note-${lid}`}
+                                    value={note}
+                                    onChange={(e) =>
+                                      setNoteByLead((s) => ({
+                                        ...s,
+                                        [lid]: e.target.value,
+                                      }))
+                                    }
+                                    className="min-h-[72px]"
+                                  />
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                disabled={
+                                  submitBid.isPending ||
+                                  bidderPhone.trim().length < 5 ||
+                                  !bidderName.trim()
+                                }
+                                onClick={() => {
+                                  const n = parseFloat(amt);
+                                  if (Number.isNaN(n) || n <= 0) return;
+                                  submitBid.mutate({
+                                    leadId: lid,
+                                    amount: n,
+                                    description: note,
+                                    bidderName: bidderName.trim(),
+                                    bidderPhone: bidderPhone.trim(),
+                                  });
+                                }}
+                              >
+                                {submitBid.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Place bid"
+                                )}
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </section>
+              </div>
             )}
 
             {submitBid.error && (
