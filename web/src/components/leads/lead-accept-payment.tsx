@@ -20,9 +20,13 @@ const NAME_KEY = "tradescore-tradesman-name";
 const EMAIL_KEY = "tradescore-tradesman-email";
 const TS_ID_KEY = "tradescore-tradesperson-id";
 const FREE_LEAD_KEY = "tradescore_free_lead_used";
+const SUPPORT_EMAIL = "support@tradescore.uk";
 
-const DEFAULT_PAYMENT_LINK =
-  "https://buy.stripe.com/test_cNi6oHfFBeXB4Gra0e4ZG01";
+/** Set on TradeForce at build time — no test URL fallback in production. */
+function stripePaymentLink(): string | undefined {
+  const url = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK?.trim();
+  return url || undefined;
+}
 
 type Props = {
   leadId: string;
@@ -51,6 +55,7 @@ export function LeadAcceptPayment({
     loading: true,
   });
   const [canUseFree, setCanUseFree] = useState<boolean | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -151,6 +156,18 @@ export function LeadAcceptPayment({
     subscription.status.toLowerCase() === "active";
 
   const runStripeCheckout = async () => {
+    setCheckoutError(null);
+    const paymentLink = stripePaymentLink();
+    if (!paymentLink) {
+      console.error(
+        "[CRITICAL] NEXT_PUBLIC_STRIPE_PAYMENT_LINK is not configured",
+      );
+      setCheckoutError(
+        `Online payment is temporarily unavailable. Please contact ${SUPPORT_EMAIL} and we will help you complete this acceptance.`,
+      );
+      return;
+    }
+
     persistIdentity(tradesmanName.trim(), tradesmanEmail.trim());
     try {
       await fetch(`/api/leads/${encodeURIComponent(leadId)}/mark-pending`, {
@@ -159,8 +176,6 @@ export function LeadAcceptPayment({
     } catch {
       /* best-effort */
     }
-    const paymentLink =
-      process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK ?? DEFAULT_PAYMENT_LINK;
     const url = new URL(paymentLink);
     url.searchParams.set("client_reference_id", leadId);
     window.location.assign(url.toString());
@@ -326,6 +341,12 @@ export function LeadAcceptPayment({
   const canContinue =
     tradesmanName.trim().length > 0 && tradesmanEmail.trim().length > 0;
 
+  const paymentLinkReady = Boolean(stripePaymentLink());
+  const needsPaidStripeCheckout =
+    !unlimitedActive && canUseFree === false && !subscription.loading;
+  const stripeCheckoutUnavailable =
+    needsPaidStripeCheckout && !paymentLinkReady;
+
   const primaryButtonLabel =
     busy || confirmExclusive.isPending
       ? "Preparing…"
@@ -441,6 +462,23 @@ export function LeadAcceptPayment({
             {confirmExclusive.error.message}
           </p>
         ) : null}
+        {checkoutError ? (
+          <p className="text-sm text-destructive" role="alert">
+            {checkoutError}
+          </p>
+        ) : null}
+        {stripeCheckoutUnavailable ? (
+          <p className="text-sm text-destructive" role="alert">
+            Card checkout is not configured on this site. Please email{" "}
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="underline underline-offset-2"
+            >
+              {SUPPORT_EMAIL}
+            </a>{" "}
+            to accept this lead.
+          </p>
+        ) : null}
         <Button
           type="button"
           variant="secondary"
@@ -453,7 +491,8 @@ export function LeadAcceptPayment({
             busy ||
             confirmExclusive.isPending ||
             !canContinue ||
-            subscription.loading
+            subscription.loading ||
+            stripeCheckoutUnavailable
           }
           onClick={() => void handleAcceptLead()}
         >

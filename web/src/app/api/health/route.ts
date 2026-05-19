@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function stripeMode(): "live" | "test" | "missing" {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key?.trim()) return "missing";
+function stripeMode(): "live" | "test" | "not_configured" {
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!key) return "not_configured";
   if (key.startsWith("sk_live_")) return "live";
   if (key.startsWith("sk_test_")) return "test";
-  return "missing";
+  return "not_configured";
 }
 
 /**
@@ -17,16 +17,19 @@ function stripeMode(): "live" | "test" | "missing" {
  */
 export async function GET() {
   const mode = stripeMode();
+  const stripe = {
+    configured: mode !== "not_configured",
+    mode,
+  };
   const body = {
     ok: true,
+    status: "ok" as const,
     service: "tradescore-web",
     timestamp: new Date().toISOString(),
     commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    stripe,
     checks: {
-      stripe: {
-        configured: mode !== "missing",
-        mode,
-      },
+      stripe,
       mongo: "not_configured" as const,
     },
   };
