@@ -6,9 +6,11 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { trpc } from "@/trpc/react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { gradeClass, fraudStyles } from "@/lib/grade-styles";
 import {
   budgetLabel,
@@ -22,6 +24,7 @@ import { LeadAcceptPayment } from "@/components/leads/lead-accept-payment";
 import { MatchedTradespersonPanel } from "@/components/leads/matched-tradesperson-panel";
 import { cn } from "@/lib/utils";
 import { readHomeownerSessionPhone } from "@/lib/auth-nav";
+import { fetchValidateTradesId } from "@/lib/validate-tradesperson-id";
 
 const TS_STORAGE = "tradescore-tradesperson-id";
 
@@ -37,6 +40,10 @@ export default function LeadDetailPage() {
   const utils = trpc.useUtils();
   const [viewerTradespersonId, setViewerTradespersonId] = useState("");
   const [homeownerPhone, setHomeownerPhone] = useState("");
+  const [idInput, setIdInput] = useState("");
+  const [idSubmitting, setIdSubmitting] = useState(false);
+  const [idConfigError, setIdConfigError] = useState<string | null>(null);
+  const [invalidTradeId, setInvalidTradeId] = useState(false);
 
   useEffect(() => {
     setViewerTradespersonId((window.localStorage.getItem(TS_STORAGE) ?? "").trim());
@@ -82,7 +89,10 @@ export default function LeadDetailPage() {
     hasTradeViewerId && matched !== "" && matched === viewerTradespersonId.trim();
 
   const paymentCleared = paymentClearedStatuses(lead);
-  const showMatchedTradeCheckout = isMatchedTradeViewer && !paymentCleared;
+  const hasExclusiveMatch = matched !== "";
+  const needsAcceptFlow = hasExclusiveMatch && !paymentCleared;
+  const showMatchedTradeCheckout = needsAcceptFlow && isMatchedTradeViewer;
+  const showTsIdGate = needsAcceptFlow && !isMatchedTradeViewer;
 
   return (
     <div className="min-h-dvh bg-background px-4 py-10 text-foreground">
@@ -231,12 +241,106 @@ export default function LeadDetailPage() {
           />
         ) : null}
 
+        {showTsIdGate ? (
+          <Card className="border-amber-500/35">
+            <CardContent className="space-y-3 p-4">
+              <h2 className="text-lg font-semibold">Verify your TradeScore ID to accept</h2>
+              <p className="text-sm text-muted-foreground">
+                This job is reserved for tradesperson{" "}
+                <span className="font-mono text-foreground">{matched}</span>. Enter your
+                ID from signup to unlock acceptance, or use the direct accept page.
+              </p>
+              <div className="grid gap-2 max-w-md">
+                <Label htmlFor="lead-trades-id">Tradesperson ID</Label>
+                <Input
+                  id="lead-trades-id"
+                  value={idInput}
+                  onChange={(e) => {
+                    setIdInput(e.target.value.toUpperCase());
+                    setIdConfigError(null);
+                    setInvalidTradeId(false);
+                  }}
+                  placeholder="e.g. TS-A3ZSCM"
+                  autoComplete="off"
+                  disabled={idSubmitting}
+                />
+              </div>
+              {idConfigError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {idConfigError}
+                </p>
+              ) : null}
+              {invalidTradeId ? (
+                <p className="text-sm text-destructive" role="alert">
+                  ID not recognised — check your confirmation email or register at{" "}
+                  <Link
+                    href="/tradesman-signup"
+                    className="font-medium text-[#FF6B35] underline underline-offset-2"
+                  >
+                    /tradesman-signup
+                  </Link>
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  disabled={idSubmitting || !idInput.trim()}
+                  onClick={async () => {
+                    setIdConfigError(null);
+                    setInvalidTradeId(false);
+                    setIdSubmitting(true);
+                    try {
+                      const v = await fetchValidateTradesId(idInput);
+                      if (v.kind === "config") {
+                        setIdConfigError(
+                          "App is not configured with NEXT_PUBLIC_API_URL.",
+                        );
+                        return;
+                      }
+                      const tid = idInput.trim();
+                      if (v.kind === "ok") {
+                        if (tid !== matched) {
+                          setInvalidTradeId(true);
+                          return;
+                        }
+                        if (typeof window !== "undefined") {
+                          window.localStorage.setItem(TS_STORAGE, tid);
+                        }
+                        setViewerTradespersonId(tid);
+                        void utils.leads.getById.invalidate();
+                        return;
+                      }
+                      setInvalidTradeId(true);
+                    } finally {
+                      setIdSubmitting(false);
+                    }
+                  }}
+                >
+                  {idSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Checking…
+                    </>
+                  ) : (
+                    "Verify ID"
+                  )}
+                </Button>
+                <Link
+                  href={`/leads/${encodeURIComponent(leadId)}/accept`}
+                  className={cn(buttonVariants({ variant: "outline" }))}
+                >
+                  Open accept page
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
         {showMatchedTradeCheckout ? (
           <section className="space-y-2 border-t border-border/80 pt-8">
             <h2 className="text-lg font-semibold">Accept this lead</h2>
             <p className="text-sm text-muted-foreground">
-              Review the project above, then pay the lead fee to unlock full contact
-              details.
+              Review the project above, then accept to unlock full contact details.
             </p>
             <LeadAcceptPayment
               leadId={leadId}

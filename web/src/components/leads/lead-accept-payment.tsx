@@ -50,6 +50,7 @@ export function LeadAcceptPayment({
   const [subscription, setSubscription] = useState<SubscriptionSnapshot>({
     loading: true,
   });
+  const [canUseFree, setCanUseFree] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -104,6 +105,24 @@ export function LeadAcceptPayment({
     }
   }, []);
 
+  const refreshFreeLeadEligibility = useCallback(async (tradeIdForCheck: string) => {
+    const tid = tradeIdForCheck.trim();
+    if (!tid) {
+      setCanUseFree(false);
+      return;
+    }
+    try {
+      const cr = await fetch(
+        `/api/leads/${encodeURIComponent(leadId)}/check-free-lead?tradeId=${encodeURIComponent(tid)}`,
+        { cache: "no-store" },
+      );
+      const cj = (await cr.json()) as { canUseFree?: boolean };
+      setCanUseFree(cr.ok && cj.canUseFree === true);
+    } catch {
+      setCanUseFree(false);
+    }
+  }, [leadId]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const expectId =
@@ -112,8 +131,10 @@ export function LeadAcceptPayment({
         : "";
     const tsId =
       (window.localStorage.getItem(TS_ID_KEY) ?? "").trim();
-    void fetchSubscriptionSnapshot(tsId || expectId);
-  }, [fetchSubscriptionSnapshot, matchedTradespersonId]);
+    const tradeIdForCheck = tsId || expectId;
+    void fetchSubscriptionSnapshot(tradeIdForCheck);
+    void refreshFreeLeadEligibility(tradeIdForCheck);
+  }, [fetchSubscriptionSnapshot, matchedTradespersonId, refreshFreeLeadEligibility]);
 
   function persistIdentity(name: string, email: string) {
     if (typeof window !== "undefined") {
@@ -309,10 +330,12 @@ export function LeadAcceptPayment({
     busy || confirmExclusive.isPending
       ? "Preparing…"
       : unlimitedActive
-        ? "Accept Lead (Included in Subscription)"
-        : subscription.loading
-          ? "Checking plan…"
-          : `Accept Lead — £${TRADESMAN_LEAD_PRICE_GBP}`;
+        ? "Accept Lead (Included In Your Plan)"
+        : canUseFree === true
+          ? "Accept Free Lead (First Lead On Us)"
+          : subscription.loading || canUseFree === null
+            ? "Checking plan…"
+            : `Accept Lead — £${TRADESMAN_LEAD_PRICE_GBP}`;
 
   return (
     <>
