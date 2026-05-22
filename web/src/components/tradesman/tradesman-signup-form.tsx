@@ -53,6 +53,7 @@ export function TradesmanSignupForm() {
   const [email, setEmail] = useState("");
   const [postcode, setPostcode] = useState("");
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
+  const [smsOptIn, setSmsOptIn] = useState(true);
   const [errors, setErrors] = useState<Record<FieldErrorKey, string>>(
     emptyErrors
   );
@@ -247,6 +248,7 @@ export function TradesmanSignupForm() {
               email: email.trim(),
               postcode: postcode.trim().toUpperCase(),
               service_areas: sortedAreas,
+              sms_opt_in: smsOptIn,
             }),
           });
           const j = (await res.json().catch(() => ({}))) as {
@@ -489,6 +491,28 @@ export function TradesmanSignupForm() {
           {formErr}
         </p>
       ) : null}
+      <div className="my-4 flex items-start gap-2">
+        <input
+          type="checkbox"
+          id="sms_opt_in"
+          name="sms_opt_in"
+          checked={smsOptIn}
+          onChange={(e) => setSmsOptIn(e.target.checked)}
+          disabled={pending}
+          className="mt-1 size-4 shrink-0 rounded border-border"
+        />
+        <label
+          htmlFor="sms_opt_in"
+          className="text-sm leading-relaxed text-muted-foreground"
+        >
+          Send me SMS alerts when I&apos;m matched to a lead. Standard rates may
+          apply. Reply STOP to opt out anytime. See our{" "}
+          <Link href="/privacy" className="underline underline-offset-2">
+            privacy policy
+          </Link>
+          .
+        </label>
+      </div>
       <Button
         type="submit"
         disabled={pending}
