@@ -129,6 +129,18 @@ export function HomeHeader() {
           aria-label="Primary"
         >
           <Link
+            href="/homeowner"
+            className="shrink-0 transition-colors hover:text-foreground"
+          >
+            Post a job
+          </Link>
+          <Link
+            href="/tradesperson"
+            className="shrink-0 transition-colors hover:text-foreground"
+          >
+            For trades
+          </Link>
+          <Link
             href="/how-we-verify"
             className="shrink-0 transition-colors hover:text-foreground"
           >
@@ -156,10 +168,10 @@ export function HomeHeader() {
           ) : null}
         </nav>
         <div className="hidden shrink-0 items-center gap-2 md:flex">
-          <Link href="/lead-capture" className={postJobOrangeSolidCtaClasses}>
+          <Link href="/homeowner" className={postJobOrangeSolidCtaClasses}>
             Post a job
           </Link>
-          <Link href="/tradesman-signup" className={tradesSignupOrangeSolidCtaClasses}>
+          <Link href="/tradesperson" className={tradesSignupOrangeSolidCtaClasses}>
             I&apos;m a tradesperson
           </Link>
           <HomeownerAccountMenu
@@ -186,6 +198,20 @@ export function HomeHeader() {
           className="border-b border-white/5 bg-zinc-950/95 px-4 py-4 md:hidden"
         >
           <nav className="flex flex-col gap-3 text-sm" aria-label="Primary mobile">
+            <Link
+              href="/homeowner"
+              className="text-foreground/90"
+              onClick={() => setOpen(false)}
+            >
+              Post a job
+            </Link>
+            <Link
+              href="/tradesperson"
+              className="text-foreground/90"
+              onClick={() => setOpen(false)}
+            >
+              For trades
+            </Link>
             <Link
               href="/how-we-verify"
               className="text-foreground/90"
@@ -217,14 +243,14 @@ export function HomeHeader() {
               </Link>
             ) : null}
             <Link
-              href="/lead-capture"
+              href="/homeowner"
               className={cn(postJobOrangeSolidCtaClasses, "w-full")}
               onClick={() => setOpen(false)}
             >
               Post a job
             </Link>
             <Link
-              href="/tradesman-signup"
+              href="/tradesperson"
               className={cn(tradesSignupOrangeSolidCtaClasses, "w-full")}
               onClick={() => setOpen(false)}
             >

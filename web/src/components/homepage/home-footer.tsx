@@ -89,10 +89,10 @@ export function HomeFooter() {
             <Link href="/privacy" className="hover:text-foreground">
               Privacy
             </Link>
-            <Link href="/lead-capture" className="hover:text-foreground">
+            <Link href="/homeowner" className="hover:text-foreground">
               Post a job
             </Link>
-            <Link href="/tradesman-signup" className={tradesSignupOrangeSolidCtaClasses}>
+            <Link href="/tradesperson" className={tradesSignupOrangeSolidCtaClasses}>
               Join TradeScore
             </Link>
           </nav>
