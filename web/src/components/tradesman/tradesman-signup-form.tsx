@@ -54,6 +54,15 @@ export function TradesmanSignupForm() {
   const [postcode, setPostcode] = useState("");
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
   const [smsOptIn, setSmsOptIn] = useState(true);
+  const [businessStructure, setBusinessStructure] = useState<
+    "sole_trader" | "limited_company" | ""
+  >("");
+  const [companiesHouseNumber, setCompaniesHouseNumber] = useState("");
+  const [utrReference, setUtrReference] = useState("");
+  const [yearsExperience, setYearsExperience] = useState("");
+  const [customerFacingBio, setCustomerFacingBio] = useState("");
+  const [publicLiabilityPolicyRef, setPublicLiabilityPolicyRef] = useState("");
+  const [gasSafeRegistration, setGasSafeRegistration] = useState("");
   const [errors, setErrors] = useState<Record<FieldErrorKey, string>>(
     emptyErrors
   );
@@ -249,6 +258,16 @@ export function TradesmanSignupForm() {
               postcode: postcode.trim().toUpperCase(),
               service_areas: sortedAreas,
               sms_opt_in: smsOptIn,
+              business_structure: businessStructure || undefined,
+              companies_house_number: companiesHouseNumber.trim() || undefined,
+              utr_reference: utrReference.trim() || undefined,
+              years_experience: yearsExperience
+                ? parseInt(yearsExperience, 10)
+                : undefined,
+              customer_facing_bio: customerFacingBio.trim() || undefined,
+              public_liability_policy_ref:
+                publicLiabilityPolicyRef.trim() || undefined,
+              gas_safe_registration: gasSafeRegistration.trim() || undefined,
             }),
           });
           const j = (await res.json().catch(() => ({}))) as {
@@ -491,6 +510,171 @@ export function TradesmanSignupForm() {
           {formErr}
         </p>
       ) : null}
+      <div className="mt-6 space-y-4 border-t border-white/10 pt-6">
+        <div>
+          <h3 className="text-lg font-semibold">Verification details</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Help us verify your business — this builds trust with customers.
+            All fields in this section are optional.
+          </p>
+        </div>
+
+        <fieldset className="grid gap-2" disabled={pending}>
+          <legend className="text-sm font-medium">Business structure</legend>
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
+            <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="business_structure"
+                value="sole_trader"
+                checked={businessStructure === "sole_trader"}
+                onChange={() => setBusinessStructure("sole_trader")}
+                disabled={pending}
+                className="size-4 shrink-0 accent-[#FF6B35]"
+              />
+              <span>Sole Trader</span>
+            </label>
+            <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="business_structure"
+                value="limited_company"
+                checked={businessStructure === "limited_company"}
+                onChange={() => setBusinessStructure("limited_company")}
+                disabled={pending}
+                className="size-4 shrink-0 accent-[#FF6B35]"
+              />
+              <span>Limited Company</span>
+            </label>
+          </div>
+        </fieldset>
+
+        {businessStructure === "limited_company" ? (
+          <div className="grid gap-2">
+            <Label htmlFor="companies_house_number">
+              Companies House registration number
+            </Label>
+            <Input
+              id="companies_house_number"
+              value={companiesHouseNumber}
+              onChange={(e) =>
+                setCompaniesHouseNumber(e.target.value.toUpperCase())
+              }
+              disabled={pending}
+              placeholder="e.g. SC123456"
+              maxLength={8}
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              8 characters. Look up on companieshouse.gov.uk
+            </p>
+          </div>
+        ) : null}
+
+        {businessStructure === "sole_trader" ? (
+          <div className="grid gap-2">
+            <Label htmlFor="utr_reference">
+              Unique Taxpayer Reference (UTR) — optional
+            </Label>
+            <Input
+              id="utr_reference"
+              value={utrReference}
+              onChange={(e) =>
+                setUtrReference(e.target.value.replace(/\D/g, ""))
+              }
+              disabled={pending}
+              placeholder="10 digits from HMRC"
+              maxLength={10}
+              inputMode="numeric"
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Found on HMRC self-assessment letters. Optional but speeds
+              verification.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="grid gap-2">
+          <Label htmlFor="years_experience">
+            Years experience in your trade
+          </Label>
+          <Input
+            id="years_experience"
+            type="number"
+            value={yearsExperience}
+            onChange={(e) => setYearsExperience(e.target.value)}
+            disabled={pending}
+            min={0}
+            max={70}
+            placeholder="e.g. 12"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="customer_facing_bio">
+            Short bio for customers (optional)
+          </Label>
+          <textarea
+            id="customer_facing_bio"
+            value={customerFacingBio}
+            onChange={(e) =>
+              setCustomerFacingBio(e.target.value.slice(0, 200))
+            }
+            disabled={pending}
+            rows={3}
+            maxLength={200}
+            placeholder="e.g. Glasgow-based painter with 12 years experience specializing in domestic interiors..."
+            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          <p className="text-xs text-muted-foreground">
+            {customerFacingBio.length}/200 characters. Shown to matched
+            customers.
+          </p>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="public_liability_policy_ref">
+            Public liability insurance policy reference (optional)
+          </Label>
+          <Input
+            id="public_liability_policy_ref"
+            value={publicLiabilityPolicyRef}
+            onChange={(e) => setPublicLiabilityPolicyRef(e.target.value)}
+            disabled={pending}
+            placeholder="Policy number from your insurer"
+            maxLength={100}
+            autoComplete="off"
+          />
+          <p className="text-xs text-muted-foreground">
+            We&apos;ll email you to request the certificate after signup. £2m
+            minimum required for verified badge.
+          </p>
+        </div>
+
+        {tradeType === "Gas Engineer" ? (
+          <div className="grid gap-2">
+            <Label htmlFor="gas_safe_registration">
+              Gas Safe Register number
+            </Label>
+            <Input
+              id="gas_safe_registration"
+              value={gasSafeRegistration}
+              onChange={(e) =>
+                setGasSafeRegistration(e.target.value.replace(/\D/g, ""))
+              }
+              disabled={pending}
+              placeholder="e.g. 638153"
+              maxLength={10}
+              inputMode="numeric"
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Verified at gassaferegister.co.uk
+            </p>
+          </div>
+        ) : null}
+      </div>
       <div className="my-4 flex items-start gap-2">
         <input
           type="checkbox"
