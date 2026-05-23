@@ -111,6 +111,23 @@ const createLeadInput = z.object({
   timeline: z.string().optional(),
 });
 
+type DeclineFlaskPayload = {
+  error?: string;
+  scenario?: string;
+  friendly_message?: string;
+  cta_url?: string;
+  cta_text?: string;
+};
+
+export type DeclineClientErrorPayload = {
+  decline: true;
+  scenario: string;
+  friendly_message: string;
+  cta_url?: string;
+  cta_text?: string;
+  error?: string;
+};
+
 function trpcErrorFromHttpStatus(status: number, bodyText: string): TRPCError {
   let message = bodyText.trim() || "";
   try {
@@ -133,6 +150,47 @@ function trpcErrorFromHttpStatus(status: number, bodyText: string): TRPCError {
           ? "INTERNAL_SERVER_ERROR"
           : "BAD_REQUEST";
   return new TRPCError({ code, message });
+}
+
+function trpcDeclineErrorFromHttpStatus(
+  status: number,
+  bodyText: string,
+): TRPCError {
+  let parsed: DeclineFlaskPayload = {};
+  try {
+    parsed = JSON.parse(bodyText) as DeclineFlaskPayload;
+  } catch {
+    /* use raw body */
+  }
+  const friendly =
+    typeof parsed.friendly_message === "string" && parsed.friendly_message.trim()
+      ? parsed.friendly_message.trim()
+      : typeof parsed.error === "string" && parsed.error.trim()
+        ? parsed.error.trim()
+        : bodyText.trim() || `Request failed (${status})`;
+  const code =
+    status === 404
+      ? "NOT_FOUND"
+      : status === 401 || status === 403
+        ? "FORBIDDEN"
+        : status >= 500
+          ? "INTERNAL_SERVER_ERROR"
+          : "BAD_REQUEST";
+  const clientPayload: DeclineClientErrorPayload = {
+    decline: true,
+    scenario: parsed.scenario?.trim() || "unknown",
+    friendly_message: friendly,
+    cta_url: parsed.cta_url?.trim() || undefined,
+    cta_text: parsed.cta_text?.trim() || undefined,
+    error:
+      typeof parsed.error === "string" && parsed.error.trim()
+        ? parsed.error.trim()
+        : undefined,
+  };
+  return new TRPCError({
+    code,
+    message: JSON.stringify(clientPayload),
+  });
 }
 
 export const leadsRouter = createTRPCRouter({
@@ -345,9 +403,13 @@ export const leadsRouter = createTRPCRouter({
           new_match?: { tradesperson_id?: string } | null;
           exhausted?: boolean;
           message?: string;
+          friendly_message?: string;
+          scenario?: string;
+          cta_url?: string;
+          cta_text?: string;
         };
       }
       const t = await res.text();
-      throw trpcErrorFromHttpStatus(res.status, t);
+      throw trpcDeclineErrorFromHttpStatus(res.status, t);
     }),
 });

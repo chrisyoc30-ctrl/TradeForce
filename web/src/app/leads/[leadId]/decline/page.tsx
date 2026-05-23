@@ -2,14 +2,125 @@
 
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Info, Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { trpc } from "@/trpc/react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { postJobOrangeSolidCtaClasses } from "@/lib/cta-tailwind";
+import type { DeclineClientErrorPayload } from "@/server/api/routers/leads";
 
 const TS_KEY = "tradescore-tradesperson-id";
+const DEFAULT_JOBS_URL = "https://www.tradescore.uk/available-jobs";
+const DEFAULT_JOBS_CTA = "View other available leads";
+const SUCCESS_SCENARIOS = new Set(["already_exhausted", "token_stale"]);
+const WARNING_SCENARIOS = new Set(["trade_mismatch"]);
+
+type DeclineOutcome = {
+  scenario: string;
+  friendly_message: string;
+  cta_url?: string;
+  cta_text?: string;
+};
+
+function parseDeclineClientError(message: string): DeclineClientErrorPayload | null {
+  try {
+    const parsed = JSON.parse(message) as DeclineClientErrorPayload;
+    if (parsed?.decline && typeof parsed.friendly_message === "string") {
+      return parsed;
+    }
+  } catch {
+    /* not a structured decline error */
+  }
+  return null;
+}
+
+function outcomeFromSuccess(data: {
+  scenario?: string;
+  friendly_message?: string;
+  message?: string;
+  cta_url?: string;
+  cta_text?: string;
+  exhausted?: boolean;
+}): DeclineOutcome {
+  const scenario =
+    data.scenario?.trim() ||
+    (data.exhausted ? "already_exhausted" : "decline_confirmed");
+  const friendly_message =
+    (typeof data.friendly_message === "string" && data.friendly_message.trim()) ||
+    (typeof data.message === "string" && data.message.trim()) ||
+    (data.exhausted
+      ? "We've notified the customer that we're finding alternatives."
+      : "Lead declined. We're matching another verified trade now.");
+  return {
+    scenario,
+    friendly_message,
+    cta_url: data.cta_url?.trim() || DEFAULT_JOBS_URL,
+    cta_text: data.cta_text?.trim() || DEFAULT_JOBS_CTA,
+  };
+}
+
+function DeclineOutcomeCard({
+  outcome,
+  tone,
+}: {
+  outcome: DeclineOutcome;
+  tone: "success" | "info" | "warning";
+}) {
+  const Icon =
+    tone === "success"
+      ? CheckCircle2
+      : tone === "warning"
+        ? AlertTriangle
+        : Info;
+  const toneClasses =
+    tone === "success"
+      ? "border-emerald-500/40 bg-emerald-50 text-emerald-950"
+      : tone === "warning"
+        ? "border-red-500/40 bg-red-50 text-red-950"
+        : "border-amber-500/40 bg-[#fef3c7] text-[#92400e]";
+
+  const iconClasses =
+    tone === "success"
+      ? "text-emerald-600"
+      : tone === "warning"
+        ? "text-red-600"
+        : "text-amber-700";
+
+  const ctaUrl = outcome.cta_url || DEFAULT_JOBS_URL;
+  const ctaText = outcome.cta_text || DEFAULT_JOBS_CTA;
+  const showJobsCta = outcome.scenario !== "already_accepted";
+
+  return (
+    <div className={cn("space-y-4 rounded-lg border px-4 py-5", toneClasses)}>
+      <div className="flex items-start gap-3">
+        <Icon className={cn("mt-0.5 h-5 w-5 shrink-0", iconClasses)} aria-hidden />
+        <p className="text-sm font-medium leading-relaxed">{outcome.friendly_message}</p>
+      </div>
+      {showJobsCta ? (
+        <Link href={ctaUrl} className={cn(postJobOrangeSolidCtaClasses, "w-full sm:w-auto")}>
+          {ctaText}
+        </Link>
+      ) : null}
+      <p className="text-xs opacity-80">
+        Need help?{" "}
+        <a
+          href="mailto:support@tradescore.uk"
+          className="font-medium underline underline-offset-2"
+        >
+          Contact support@tradescore.uk
+        </a>
+      </p>
+    </div>
+  );
+}
+
+function toneForScenario(scenario: string): "success" | "info" | "warning" {
+  if (SUCCESS_SCENARIOS.has(scenario)) return "success";
+  if (WARNING_SCENARIOS.has(scenario)) return "warning";
+  return "info";
+}
 
 export default function DeclineLeadPage() {
   const params = useParams();
@@ -18,8 +129,8 @@ export default function DeclineLeadPage() {
   const token = (searchParams.get("token") ?? "").trim();
   const utils = trpc.useUtils();
   const [tsId, setTsId] = useState("");
-  const [done, setDone] = useState(false);
-  const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<DeclineOutcome | null>(null);
+  const [outcomeTone, setOutcomeTone] = useState<"success" | "info" | "warning">("info");
 
   useEffect(() => {
     setTsId((window.localStorage.getItem(TS_KEY) ?? "").trim());
@@ -28,18 +139,38 @@ export default function DeclineLeadPage() {
   const mutation = trpc.leads.declineExclusive.useMutation({
     onSuccess: async (data) => {
       await utils.leads.getById.invalidate();
-      setDone(true);
-      setResultMessage(
-        typeof data.message === "string" && data.message.trim()
-          ? data.message.trim()
-          : data.exhausted
-            ? "We've notified the customer that we're finding alternatives."
-            : "Lead declined. We're matching another verified trade now.",
-      );
+      const resolved = outcomeFromSuccess(data);
+      setOutcome(resolved);
+      if (SUCCESS_SCENARIOS.has(resolved.scenario)) {
+        setOutcomeTone(toneForScenario(resolved.scenario));
+      } else {
+        setOutcomeTone("success");
+      }
+    },
+    onError: (error) => {
+      const parsed = parseDeclineClientError(error.message);
+      if (parsed) {
+        setOutcome({
+          scenario: parsed.scenario,
+          friendly_message: parsed.friendly_message,
+          cta_url: parsed.cta_url,
+          cta_text: parsed.cta_text,
+        });
+        setOutcomeTone(toneForScenario(parsed.scenario));
+        return;
+      }
+      setOutcome({
+        scenario: "unknown",
+        friendly_message: error.message || "Something went wrong. Please try again.",
+        cta_url: DEFAULT_JOBS_URL,
+        cta_text: DEFAULT_JOBS_CTA,
+      });
+      setOutcomeTone("info");
     },
   });
 
   const canSubmit = Boolean(token) || Boolean(tsId);
+  const finished = Boolean(outcome);
 
   if (!leadId) {
     return (
@@ -69,20 +200,11 @@ export default function DeclineLeadPage() {
           </p>
         </div>
 
-        {done ? (
-          <p className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm text-foreground">
-            {resultMessage ?? "You've declined this lead."}{" "}
-            <Link
-              href="/lead-scoring"
-              className="font-medium underline underline-offset-2"
-            >
-              Return to the board
-            </Link>
-            .
-          </p>
+        {finished && outcome ? (
+          <DeclineOutcomeCard outcome={outcome} tone={outcomeTone} />
         ) : null}
 
-        {!done && !token && !tsId ? (
+        {!finished && !token && !tsId ? (
           <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-foreground">
             Open this page from the link in your match email, or save your
             TradeScore ID under{" "}
@@ -93,13 +215,7 @@ export default function DeclineLeadPage() {
           </div>
         ) : null}
 
-        {!done && mutation.error ? (
-          <p className="text-sm text-destructive" role="alert">
-            {mutation.error.message}
-          </p>
-        ) : null}
-
-        {!done ? (
+        {!finished ? (
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               type="button"
