@@ -307,23 +307,45 @@ export const leadsRouter = createTRPCRouter({
 
   declineExclusive: publicProcedure
     .input(
-      z.object({
-        leadId: z.string().min(1),
-        tradespersonId: z.string().min(3),
-      })
+      z
+        .object({
+          leadId: z.string().min(1),
+          tradespersonId: z.string().min(3).optional(),
+          token: z.string().min(8).optional(),
+        })
+        .refine(
+          (d) => Boolean(d.token?.trim()) || Boolean(d.tradespersonId?.trim()),
+          { message: "tradespersonId or decline token required" },
+        ),
     )
     .mutation(async ({ input }) => {
       const base = getApiBaseUrl();
+      const token = input.token?.trim();
+      const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+      const body: Record<string, string> = {};
+      if (input.tradespersonId?.trim()) {
+        body.tradesperson_id = input.tradespersonId.trim();
+      }
+      if (token) {
+        body.token = token;
+      }
       const res = await fetch(
-        `${base}/api/leads/${encodeURIComponent(input.leadId)}/decline`,
+        `${base}/api/leads/${encodeURIComponent(input.leadId)}/decline${qs}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tradesperson_id: input.tradespersonId }),
-        }
+          body: JSON.stringify(body),
+        },
       );
       if (res.ok) {
-        return (await res.json()) as Record<string, unknown>;
+        return (await res.json()) as {
+          success?: boolean;
+          decline_recorded?: boolean;
+          rematch_attempted?: boolean;
+          new_match?: { tradesperson_id?: string } | null;
+          exhausted?: boolean;
+          message?: string;
+        };
       }
       const t = await res.text();
       throw trpcErrorFromHttpStatus(res.status, t);
