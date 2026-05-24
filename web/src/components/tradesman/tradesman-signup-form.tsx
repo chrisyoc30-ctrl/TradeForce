@@ -55,7 +55,7 @@ export function TradesmanSignupForm() {
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
   const [smsOptIn, setSmsOptIn] = useState(true);
   const [businessStructure, setBusinessStructure] = useState<
-    "sole_trader" | "limited_company" | ""
+    "sole_trader" | "limited_company" | "partnership" | ""
   >("");
   const [companiesHouseNumber, setCompaniesHouseNumber] = useState("");
   const [utrReference, setUtrReference] = useState("");
@@ -545,6 +545,18 @@ export function TradesmanSignupForm() {
                 className="size-4 shrink-0 accent-[#FF6B35]"
               />
               <span>Limited Company</span>
+            </label>
+            <label className="flex min-h-[44px] cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="business_structure"
+                value="partnership"
+                checked={businessStructure === "partnership"}
+                onChange={() => setBusinessStructure("partnership")}
+                disabled={pending}
+                className="size-4 shrink-0 accent-[#FF6B35]"
+              />
+              <span>Partnership</span>
             </label>
           </div>
         </fieldset>
