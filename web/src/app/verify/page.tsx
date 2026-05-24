@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -47,7 +47,7 @@ const emptyForm = {
   confirm_authorities: false,
 };
 
-export default function VerifyPage() {
+function VerifyPageContent() {
   const searchParams = useSearchParams();
   const urlId = (searchParams.get("id") ?? "").trim().toUpperCase();
 
@@ -677,5 +677,22 @@ export default function VerifyPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+function VerifyPageFallback() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-zinc-950 px-4 text-sm text-muted-foreground">
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+      Loading verification form…
+    </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<VerifyPageFallback />}>
+      <VerifyPageContent />
+    </Suspense>
   );
 }
