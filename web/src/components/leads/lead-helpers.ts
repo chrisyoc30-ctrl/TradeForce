@@ -39,6 +39,22 @@ export function tradesLeadLocationPreview(lead: Lead): string {
   return locationLabel(lead);
 }
 
+/** Flask may return snake_case until normalised — read either form. */
+export function leadMatchedTradespersonId(lead: Lead): string {
+  const raw = lead as Lead & { matched_tradesperson_id?: string | null };
+  return String(raw.matchedTradespersonId ?? raw.matched_tradesperson_id ?? "").trim();
+}
+
+export function leadMatchStatus(lead: Lead): string {
+  const raw = lead as Lead & { match_status?: string | null };
+  return String(raw.matchStatus ?? raw.match_status ?? "").trim();
+}
+
+export function leadPaymentStatus(lead: Lead): string {
+  const raw = lead as Lead & { payment_status?: string | null };
+  return String(raw.paymentStatus ?? raw.payment_status ?? "").trim();
+}
+
 /** Homeowner contacts are unlocked for this JSON payload (matched trade + acceptance + payment cleared). */
 export function isTradeLeadContactUnlocked(lead: Lead): boolean {
   return lead.contactRevealUnlocked === true;
