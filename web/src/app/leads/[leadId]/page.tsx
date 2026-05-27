@@ -49,6 +49,7 @@ export default function LeadDetailPage() {
   const [idSubmitting, setIdSubmitting] = useState(false);
   const [idConfigError, setIdConfigError] = useState<string | null>(null);
   const [invalidTradeId, setInvalidTradeId] = useState(false);
+  const [viewerCanUseFree, setViewerCanUseFree] = useState<boolean | null>(null);
 
   useEffect(() => {
     setViewerTradespersonId((window.localStorage.getItem(TS_STORAGE) ?? "").trim());
@@ -94,6 +95,43 @@ export default function LeadDetailPage() {
     getByIdInput,
     { enabled: Boolean(leadId) && !waitingOnToken },
   );
+
+  useEffect(() => {
+    if (!leadId || !lead) {
+      setViewerCanUseFree(null);
+      return;
+    }
+    if (tokenValid && tokenMeta) {
+      setViewerCanUseFree(Boolean(tokenMeta.canUseFree));
+      return;
+    }
+    const matchedTrade = leadMatchedTradespersonId(lead);
+    const tid = effectiveViewerId;
+    if (!tid || tid !== matchedTrade) {
+      setViewerCanUseFree(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch(
+          `/api/leads/${encodeURIComponent(leadId)}/check-free-lead?tradeId=${encodeURIComponent(tid)}`,
+          { cache: "no-store" },
+        );
+        const j = (await r.json()) as { canUseFree?: boolean };
+        if (!cancelled) {
+          setViewerCanUseFree(r.ok && j.canUseFree === true);
+        }
+      } catch {
+        if (!cancelled) {
+          setViewerCanUseFree(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lead, leadId, tokenValid, tokenMeta, effectiveViewerId]);
 
   if (!leadId) {
     return (
@@ -141,6 +179,10 @@ export default function LeadDetailPage() {
   const needsAcceptFlow = hasExclusiveMatch && !paymentCleared;
   const showMatchActions = needsAcceptFlow && isMatchedTradeViewer;
   const showTsIdGate = needsAcceptFlow && !isMatchedTradeViewer;
+  const canUseFreeForActions =
+    tokenValid && tokenMeta
+      ? Boolean(tokenMeta.canUseFree)
+      : viewerCanUseFree === true;
 
   const acceptPageHref = hasUrlToken
     ? `/leads/${encodeURIComponent(leadId)}/accept?trade=${encodeURIComponent(urlTrade)}&token=${encodeURIComponent(urlToken)}`
@@ -190,7 +232,7 @@ export default function LeadDetailPage() {
             tradespersonId={effectiveViewerId}
             accessToken={hasUrlToken ? urlToken : undefined}
             declineToken={tokenMeta?.declineToken}
-            canUseFree={tokenMeta?.canUseFree ?? false}
+            canUseFree={canUseFreeForActions}
           />
         ) : null}
 
