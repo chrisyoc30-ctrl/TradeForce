@@ -19,7 +19,9 @@ import { postJobOrangeSolidCtaClasses } from "@/lib/cta-tailwind";
 import { getPublicApiBaseUrl } from "@/lib/public-api-base";
 import {
   VERIFY_SECTIONS,
+  CPS_SCHEME_OPTIONS,
   verifyFormSchema,
+  type CpsSchemeId,
   type VerifyProfile,
 } from "@/lib/schemas/verify-form";
 import { cn } from "@/lib/utils";
@@ -42,10 +44,32 @@ const emptyForm = {
   id_type: "" as "" | "driving_licence" | "passport",
   gas_safe_number: "",
   niceic_reg: "",
+  napit_reg: "",
+  elecsa_reg: "",
+  stroma_reg: "",
+  cps_other_name: "",
+  cps_other_number: "",
   other_certifications: "",
   confirm_accurate: false,
   confirm_authorities: false,
 };
+
+type CpsEntry = {
+  enabled: boolean;
+  number: string;
+  otherName: string;
+  file: File | null;
+};
+
+function emptyCpsState(): Record<CpsSchemeId, CpsEntry> {
+  return {
+    niceic: { enabled: false, number: "", otherName: "", file: null },
+    napit: { enabled: false, number: "", otherName: "", file: null },
+    elecsa: { enabled: false, number: "", otherName: "", file: null },
+    stroma: { enabled: false, number: "", otherName: "", file: null },
+    other: { enabled: false, number: "", otherName: "", file: null },
+  };
+}
 
 function VerifyPageContent() {
   const searchParams = useSearchParams();
@@ -63,10 +87,13 @@ function VerifyPageContent() {
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
   const [photoIdFile, setPhotoIdFile] = useState<File | null>(null);
   const [certFiles, setCertFiles] = useState<File[]>([]);
+  const [cpsSchemes, setCpsSchemes] = useState<Record<CpsSchemeId, CpsEntry>>(
+    emptyCpsState,
+  );
 
   const tradeType = (profile?.trade_type ?? "").toLowerCase();
   const showGasSafe = tradeType.includes("gas");
-  const showNiceic = tradeType.includes("electric");
+  const showCps = tradeType.includes("electric");
 
   const lookupTrade = useCallback(async (id: string) => {
     const base = getPublicApiBaseUrl();
@@ -129,10 +156,22 @@ function VerifyPageContent() {
       Boolean(form.insurance_expiry) &&
       Boolean(insuranceFile);
     const idDocOk = Boolean(form.id_type) && Boolean(photoIdFile);
-    const certOk = true;
+    const hasCps =
+      !showCps ||
+      CPS_SCHEME_OPTIONS.some((opt) => {
+        const entry = cpsSchemes[opt.id];
+        if (!entry.enabled) return false;
+        if ("other" in opt && opt.other) {
+          return (
+            entry.otherName.trim().length > 0 && entry.number.trim().length > 0
+          );
+        }
+        return entry.number.trim().length > 0;
+      });
+    const certOk = hasCps;
     const confirmOk = form.confirm_accurate && form.confirm_authorities;
     return [idOk, bizOk, bioOk, insOk, idDocOk, certOk, confirmOk];
-  }, [form, profile, insuranceFile, photoIdFile]);
+  }, [form, profile, insuranceFile, photoIdFile, cpsSchemes, showCps]);
 
   function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -153,8 +192,37 @@ function VerifyPageContent() {
       return;
     }
 
+    if (showCps) {
+      const hasScheme = CPS_SCHEME_OPTIONS.some((opt) => {
+        const entry = cpsSchemes[opt.id];
+        if (!entry.enabled) return false;
+        if ("other" in opt && opt.other) {
+          return (
+            entry.otherName.trim().length > 0 && entry.number.trim().length > 0
+          );
+        }
+        return entry.number.trim().length > 0;
+      });
+      if (!hasScheme) {
+        setFormError(
+          "Select at least one competent person scheme and enter the registration number.",
+        );
+        return;
+      }
+    }
+
+    const cpsFormValues = {
+      niceic_reg: cpsSchemes.niceic.enabled ? cpsSchemes.niceic.number.trim() : "",
+      napit_reg: cpsSchemes.napit.enabled ? cpsSchemes.napit.number.trim() : "",
+      elecsa_reg: cpsSchemes.elecsa.enabled ? cpsSchemes.elecsa.number.trim() : "",
+      stroma_reg: cpsSchemes.stroma.enabled ? cpsSchemes.stroma.number.trim() : "",
+      cps_other_name: cpsSchemes.other.enabled ? cpsSchemes.other.otherName.trim() : "",
+      cps_other_number: cpsSchemes.other.enabled ? cpsSchemes.other.number.trim() : "",
+    };
+
     const parsed = verifyFormSchema.safeParse({
       ...form,
+      ...cpsFormValues,
       years_experience: form.years_experience === "" ? NaN : Number(form.years_experience),
       confirm_accurate: form.confirm_accurate ? true : undefined,
       confirm_authorities: form.confirm_authorities ? true : undefined,
@@ -191,11 +259,22 @@ function VerifyPageContent() {
     fd.append("id_type", d.id_type);
     if (d.gas_safe_number) fd.append("gas_safe_number", d.gas_safe_number);
     if (d.niceic_reg) fd.append("niceic_reg", d.niceic_reg);
+    if (d.napit_reg) fd.append("napit_reg", d.napit_reg);
+    if (d.elecsa_reg) fd.append("elecsa_reg", d.elecsa_reg);
+    if (d.stroma_reg) fd.append("stroma_reg", d.stroma_reg);
+    if (d.cps_other_name) fd.append("cps_other_name", d.cps_other_name);
+    if (d.cps_other_number) fd.append("cps_other_number", d.cps_other_number);
     if (d.other_certifications) fd.append("other_certifications", d.other_certifications);
     fd.append("confirm_accurate", "true");
     fd.append("confirm_authorities", "true");
     fd.append("insurance_certificate", insuranceFile);
     fd.append("photo_id", photoIdFile);
+    for (const opt of CPS_SCHEME_OPTIONS) {
+      const entry = cpsSchemes[opt.id];
+      if (entry.enabled && entry.file) {
+        fd.append(`cps_cert_${opt.id}`, entry.file);
+      }
+    }
     for (const f of certFiles) fd.append("certification_documents", f);
 
     try {
@@ -570,7 +649,11 @@ function VerifyPageContent() {
           <Card className="border-zinc-800 bg-zinc-900/80">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">6. Trade certifications</CardTitle>
-              <CardDescription>Optional uploads — speeds up badge grants.</CardDescription>
+              <CardDescription>
+                {showCps
+                  ? "Select competent person schemes you are registered with — upload a certificate for each."
+                  : "Optional uploads — speeds up badge grants."}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {showGasSafe ? (
@@ -586,16 +669,86 @@ function VerifyPageContent() {
                   />
                 </div>
               ) : null}
-              {showNiceic ? (
-                <div className="grid gap-2">
-                  <Label htmlFor="niceic">NICEIC registration</Label>
-                  <Input
-                    id="niceic"
-                    value={form.niceic_reg}
-                    onChange={(e) => setField("niceic_reg", e.target.value)}
-                    maxLength={20}
-                    disabled={submitting}
-                  />
+              {showCps ? (
+                <div className="space-y-4 rounded-md border border-zinc-700/80 p-3">
+                  <p className="text-sm font-medium">Competent Person Scheme (electricians)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Select all schemes you&apos;re registered with. At least one is required.
+                  </p>
+                  {CPS_SCHEME_OPTIONS.map((opt) => {
+                    const entry = cpsSchemes[opt.id];
+                    const isOther = "other" in opt && opt.other;
+                    return (
+                      <div key={opt.id} className="space-y-2 border-t border-zinc-800 pt-3 first:border-0 first:pt-0">
+                        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+                          <input
+                            type="checkbox"
+                            checked={entry.enabled}
+                            disabled={submitting}
+                            className="accent-orange-500"
+                            onChange={(e) =>
+                              setCpsSchemes((prev) => ({
+                                ...prev,
+                                [opt.id]: { ...prev[opt.id], enabled: e.target.checked },
+                              }))
+                            }
+                          />
+                          {opt.label}
+                        </label>
+                        {entry.enabled ? (
+                          <div className="ml-6 space-y-2">
+                            {isOther ? (
+                              <Input
+                                placeholder="Scheme name"
+                                value={entry.otherName}
+                                disabled={submitting}
+                                onChange={(e) =>
+                                  setCpsSchemes((prev) => ({
+                                    ...prev,
+                                    [opt.id]: { ...prev[opt.id], otherName: e.target.value },
+                                  }))
+                                }
+                              />
+                            ) : null}
+                            <Input
+                              placeholder={isOther ? "Registration number" : `${opt.label} number`}
+                              value={entry.number}
+                              maxLength={20}
+                              disabled={submitting}
+                              onChange={(e) =>
+                                setCpsSchemes((prev) => ({
+                                  ...prev,
+                                  [opt.id]: { ...prev[opt.id], number: e.target.value },
+                                }))
+                              }
+                            />
+                            <div className="grid gap-1">
+                              <Label className="text-xs">Certificate (PDF or photo)</Label>
+                              <Input
+                                type="file"
+                                accept={ACCEPT_FILES}
+                                disabled={submitting}
+                                onChange={(e) =>
+                                  setCpsSchemes((prev) => ({
+                                    ...prev,
+                                    [opt.id]: {
+                                      ...prev[opt.id],
+                                      file: e.target.files?.[0] ?? null,
+                                    },
+                                  }))
+                                }
+                              />
+                              {entry.file ? (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Upload className="h-3 w-3" /> {entry.file.name}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : null}
               <div className="grid gap-2">

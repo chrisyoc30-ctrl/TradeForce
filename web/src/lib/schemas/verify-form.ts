@@ -30,6 +30,11 @@ export const verifyFormSchema = z
     id_type: z.enum(["driving_licence", "passport"], "Select ID type"),
     gas_safe_number: z.string().trim().max(10).optional(),
     niceic_reg: z.string().trim().max(20).optional(),
+    napit_reg: z.string().trim().max(20).optional(),
+    elecsa_reg: z.string().trim().max(20).optional(),
+    stroma_reg: z.string().trim().max(20).optional(),
+    cps_other_name: z.string().trim().max(80).optional(),
+    cps_other_number: z.string().trim().max(20).optional(),
     other_certifications: z.string().trim().max(500).optional(),
     confirm_accurate: z.literal(
       true,
@@ -75,3 +80,13 @@ export const VERIFY_SECTIONS = [
   "Certifications",
   "Confirm",
 ] as const;
+
+export const CPS_SCHEME_OPTIONS = [
+  { id: "niceic", label: "NICEIC", numberField: "niceic_reg" as const },
+  { id: "napit", label: "NAPIT", numberField: "napit_reg" as const },
+  { id: "elecsa", label: "ELECSA", numberField: "elecsa_reg" as const },
+  { id: "stroma", label: "STROMA", numberField: "stroma_reg" as const },
+  { id: "other", label: "Other", numberField: "cps_other_number" as const, other: true },
+] as const;
+
+export type CpsSchemeId = (typeof CPS_SCHEME_OPTIONS)[number]["id"];
