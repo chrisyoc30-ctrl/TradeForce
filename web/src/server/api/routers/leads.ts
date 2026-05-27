@@ -294,6 +294,67 @@ export const leadsRouter = createTRPCRouter({
       return res.json() as Promise<Lead>;
     }),
 
+  validateAccessToken: publicProcedure
+    .input(
+      z.object({
+        leadId: z.string().min(1),
+        tradeId: z.string().min(3),
+        token: z.string().min(8),
+        source: z.enum(["link"]).optional(),
+        page: z.enum(["detail", "accept"]).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const base = getApiBaseUrl();
+      const qp = new URLSearchParams({
+        trade: input.tradeId.trim(),
+        token: input.token.trim(),
+      });
+      if (input.source) {
+        qp.set("source", input.source);
+      }
+      if (input.page) {
+        qp.set("page", input.page);
+      }
+      const res = await fetch(
+        `${base}/api/leads/${encodeURIComponent(input.leadId)}/validate-access-token?${qp.toString()}`,
+        { cache: "no-store" },
+      );
+      const body = (await res.json().catch(() => ({}))) as {
+        valid?: boolean;
+        reason?: string;
+        tradespersonId?: string;
+        fullName?: string;
+        email?: string;
+        freeLeadUsed?: boolean;
+        canUseFree?: boolean;
+        declineToken?: string | null;
+        exp?: number;
+      };
+      if (!res.ok) {
+        return {
+          valid: false as const,
+          reason: body.reason ?? `validation_failed_${res.status}`,
+        };
+      }
+      if (!body.valid) {
+        return {
+          valid: false as const,
+          reason: body.reason ?? "invalid",
+        };
+      }
+      return {
+        valid: true as const,
+        tradespersonId: body.tradespersonId ?? input.tradeId,
+        fullName: body.fullName ?? "",
+        email: body.email ?? "",
+        freeLeadUsed: Boolean(body.freeLeadUsed),
+        canUseFree: Boolean(body.canUseFree),
+        declineToken: body.declineToken ?? null,
+        exp: body.exp,
+      };
+    }),
+
   getMatched: publicProcedure
     .input(z.object({ leadId: z.string().min(1) }))
     .query(async ({ input }) => {

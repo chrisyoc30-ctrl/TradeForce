@@ -52,6 +52,8 @@ export interface Lead {
   contactMasked?: boolean;
   /** e.g. "G52 area" when full postcode/street withheld. */
   contactPostcodeArea?: string | null;
+  /** Tokenized detail URL for exclusive matches (from Flask tradesperson leads feed). */
+  acceptUrl?: string | null;
 }
 
 export interface CreateLeadResult {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
@@ -20,7 +20,7 @@ import {
   timelineLabel,
   tradesLeadLocationPreview,
 } from "@/components/leads/lead-helpers";
-import { LeadAcceptPayment } from "@/components/leads/lead-accept-payment";
+import { LeadMatchActions } from "@/components/leads/lead-match-actions";
 import { MatchedTradespersonPanel } from "@/components/leads/matched-tradesperson-panel";
 import { cn } from "@/lib/utils";
 import { readHomeownerSessionPhone } from "@/lib/auth-nav";
@@ -35,7 +35,11 @@ function paymentClearedStatuses(lead: { paymentStatus?: string | null }): boolea
 
 export default function LeadDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const leadId = typeof params.leadId === "string" ? params.leadId : "";
+  const urlTrade = (searchParams.get("trade") ?? "").trim();
+  const urlToken = (searchParams.get("token") ?? "").trim();
+  const hasUrlToken = urlTrade.length > 0 && urlToken.length > 0;
 
   const utils = trpc.useUtils();
   const [viewerTradespersonId, setViewerTradespersonId] = useState("");
@@ -50,16 +54,44 @@ export default function LeadDetailPage() {
     setHomeownerPhone(readHomeownerSessionPhone().trim());
   }, []);
 
+  const tokenValidation = trpc.leads.validateAccessToken.useQuery(
+    {
+      leadId,
+      tradeId: urlTrade,
+      token: urlToken,
+      source: "link",
+      page: "detail",
+    },
+    { enabled: Boolean(leadId) && hasUrlToken, retry: false },
+  );
+
+  const tokenValid = tokenValidation.data?.valid === true;
+  const tokenMeta = tokenValidation.data?.valid ? tokenValidation.data : null;
+  const waitingOnToken = hasUrlToken && tokenValidation.isLoading;
+
+  useEffect(() => {
+    if (!tokenValid || !urlTrade) {
+      return;
+    }
+    setViewerTradespersonId(urlTrade);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(TS_STORAGE, urlTrade);
+    }
+    void utils.leads.getById.invalidate();
+  }, [tokenValid, urlTrade, utils.leads.getById]);
+
+  const effectiveViewerId = tokenValid ? urlTrade : viewerTradespersonId.trim();
+
   const getByIdInput = {
     id: leadId,
-    viewerTradespersonId: viewerTradespersonId.trim() || undefined,
+    viewerTradespersonId: effectiveViewerId || undefined,
     homeownerPhone:
       homeownerPhone.trim().length >= 8 ? homeownerPhone.trim() : undefined,
   };
 
   const { data: lead, isLoading: leadLoading } = trpc.leads.getById.useQuery(
     getByIdInput,
-    { enabled: Boolean(leadId) },
+    { enabled: Boolean(leadId) && !waitingOnToken },
   );
 
   if (!leadId) {
@@ -70,11 +102,25 @@ export default function LeadDetailPage() {
     );
   }
 
-  if (leadLoading || !lead) {
+  if (waitingOnToken || leadLoading || !lead) {
     return (
       <div className="flex min-h-dvh items-center justify-center gap-2 text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Loading project…
+        {waitingOnToken ? "Verifying your secure link…" : "Loading project…"}
+      </div>
+    );
+  }
+
+  if (hasUrlToken && tokenValidation.data && !tokenValidation.data.valid) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 px-4 py-16 text-center text-sm">
+        <p className="text-destructive" role="alert">
+          This acceptance link is invalid or has expired. Open Available Jobs or
+          contact support@tradescore.uk if you need a fresh link.
+        </p>
+        <Link href="/available-jobs" className={cn(buttonVariants({ variant: "secondary" }))}>
+          Available jobs
+        </Link>
       </div>
     );
   }
@@ -83,16 +129,21 @@ export default function LeadDetailPage() {
   const f = fraudStyles(lead.fraudRisk);
   const unlocked = isTradeLeadContactUnlocked(lead);
 
-  const hasTradeViewerId = viewerTradespersonId.trim().length > 0;
   const matched = String(lead.matchedTradespersonId ?? "").trim();
   const isMatchedTradeViewer =
-    hasTradeViewerId && matched !== "" && matched === viewerTradespersonId.trim();
+    effectiveViewerId.length > 0 &&
+    matched !== "" &&
+    matched === effectiveViewerId;
 
   const paymentCleared = paymentClearedStatuses(lead);
   const hasExclusiveMatch = matched !== "";
   const needsAcceptFlow = hasExclusiveMatch && !paymentCleared;
-  const showMatchedTradeCheckout = needsAcceptFlow && isMatchedTradeViewer;
+  const showMatchActions = needsAcceptFlow && isMatchedTradeViewer;
   const showTsIdGate = needsAcceptFlow && !isMatchedTradeViewer;
+
+  const acceptPageHref = hasUrlToken
+    ? `/leads/${encodeURIComponent(leadId)}/accept?trade=${encodeURIComponent(urlTrade)}&token=${encodeURIComponent(urlToken)}`
+    : `/leads/${encodeURIComponent(leadId)}/accept`;
 
   return (
     <div className="min-h-dvh bg-background px-4 py-10 text-foreground">
@@ -199,7 +250,17 @@ export default function LeadDetailPage() {
               </div>
             ) : (
               <div className="rounded-md border border-amber-500/35 bg-muted/35 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-                {hasTradeViewerId && !isMatchedTradeViewer ? (
+                {isMatchedTradeViewer ? (
+                  <>
+                    Homeowner contact unlocks after you accept and pay the lead
+                    fee (or use your first free lead). You&apos;re seeing postcode
+                    area only:{" "}
+                    <strong className="text-foreground">
+                      {tradesLeadLocationPreview(lead)}
+                    </strong>
+                    .
+                  </>
+                ) : effectiveViewerId && !isMatchedTradeViewer ? (
                   <>
                     This page does not reveal homeowner contact unless you&apos;re the
                     matched tradesperson who accepted and paid. Open this lead from the
@@ -326,7 +387,7 @@ export default function LeadDetailPage() {
                   )}
                 </Button>
                 <Link
-                  href={`/leads/${encodeURIComponent(leadId)}/accept`}
+                  href={acceptPageHref}
                   className={cn(buttonVariants({ variant: "outline" }))}
                 >
                   Open accept page
@@ -336,21 +397,14 @@ export default function LeadDetailPage() {
           </Card>
         ) : null}
 
-        {showMatchedTradeCheckout ? (
-          <section className="space-y-2 border-t border-border/80 pt-8">
-            <h2 className="text-lg font-semibold">Accept this lead</h2>
-            <p className="text-sm text-muted-foreground">
-              Review the project above, then accept to unlock full contact details.
-            </p>
-            <LeadAcceptPayment
-              leadId={leadId}
-              exclusiveMatchStatus={lead.matchStatus}
-              matchedTradespersonId={lead.matchedTradespersonId}
-              onPaymentSucceeded={() => {
-                void utils.leads.getById.invalidate();
-              }}
-            />
-          </section>
+        {showMatchActions ? (
+          <LeadMatchActions
+            leadId={leadId}
+            tradespersonId={effectiveViewerId}
+            accessToken={hasUrlToken ? urlToken : undefined}
+            declineToken={tokenMeta?.declineToken}
+            canUseFree={tokenMeta?.canUseFree ?? false}
+          />
         ) : null}
 
         {isMatchedTradeViewer && paymentCleared ? (
