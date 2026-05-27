@@ -26,7 +26,7 @@ import {
 } from "@/lib/schemas/verify-form";
 import { cn } from "@/lib/utils";
 
-const BIO_MAX = 280;
+const BIO_MAX = 1500;
 const ACCEPT_FILES = ".pdf,.jpg,.jpeg,.png,.heic,.heif,image/*,application/pdf";
 
 type FieldErrors = Partial<Record<string, string>>;

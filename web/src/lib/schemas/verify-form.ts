@@ -23,7 +23,7 @@ export const verifyFormSchema = z
       .string()
       .trim()
       .min(10, "Bio must be at least 10 characters")
-      .max(280, "Bio must be 280 characters or fewer"),
+      .max(1500, "Bio must be 1500 characters or fewer"),
     insurance_company: z.string().trim().min(1, "Insurance company is required").max(120),
     insurance_policy_number: z.string().trim().min(1, "Policy number is required").max(100),
     insurance_expiry: z.string().trim().min(1, "Expiry date is required"),
