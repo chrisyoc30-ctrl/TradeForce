@@ -323,6 +323,7 @@ export const leadsRouter = createTRPCRouter({
       const body = (await res.json().catch(() => ({}))) as {
         valid?: boolean;
         reason?: string;
+        alreadyAccepted?: boolean;
         tradespersonId?: string;
         fullName?: string;
         email?: string;
@@ -345,6 +346,7 @@ export const leadsRouter = createTRPCRouter({
       }
       return {
         valid: true as const,
+        alreadyAccepted: Boolean(body.alreadyAccepted),
         tradespersonId: body.tradespersonId ?? input.tradeId,
         fullName: body.fullName ?? "",
         email: body.email ?? "",
