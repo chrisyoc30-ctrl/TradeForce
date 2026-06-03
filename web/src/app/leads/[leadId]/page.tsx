@@ -26,8 +26,12 @@ import { MatchedTradespersonPanel } from "@/components/leads/matched-tradesperso
 import { cn } from "@/lib/utils";
 import { readHomeownerSessionPhone } from "@/lib/auth-nav";
 import { fetchValidateTradesId } from "@/lib/validate-tradesperson-id";
+import {
+  persistTradespersonIdFromUrl,
+  TRADESPERSON_ID_STORAGE_KEY,
+} from "@/lib/tradesperson-storage";
 
-const TS_STORAGE = "tradescore-tradesperson-id";
+const TS_STORAGE = TRADESPERSON_ID_STORAGE_KEY;
 
 function paymentClearedStatuses(lead: { paymentStatus?: string | null }): boolean {
   const ps = (lead.paymentStatus ?? "").toLowerCase();
@@ -72,15 +76,19 @@ export default function LeadDetailPage() {
   const waitingOnToken = hasUrlToken && tokenValidation.isLoading;
 
   useEffect(() => {
-    if (!tokenValid || !urlTrade) {
+    if (!tokenValidation.data?.valid) {
       return;
     }
-    setViewerTradespersonId(urlTrade);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(TS_STORAGE, urlTrade);
+    const tid = (
+      tokenValidation.data.tradespersonId ?? urlTrade
+    ).trim();
+    if (!tid) {
+      return;
     }
+    persistTradespersonIdFromUrl(tid);
+    setViewerTradespersonId(tid);
     void utils.leads.getById.invalidate();
-  }, [tokenValid, urlTrade, utils.leads.getById]);
+  }, [tokenValidation.data, urlTrade, utils.leads.getById]);
 
   const effectiveViewerId = tokenValid ? urlTrade : viewerTradespersonId.trim();
 

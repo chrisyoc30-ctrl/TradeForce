@@ -14,11 +14,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getPublicApiBaseUrl } from "@/lib/public-api-base";
 import { TRADESMAN_LEAD_PRICE_GBP } from "@/lib/pricing";
+import {
+  persistTradespersonIdFromUrl,
+  TRADESPERSON_ID_STORAGE_KEY,
+} from "@/lib/tradesperson-storage";
 import { trpc } from "@/trpc/react";
 
 const NAME_KEY = "tradescore-tradesman-name";
 const EMAIL_KEY = "tradescore-tradesman-email";
-const TS_ID_KEY = "tradescore-tradesperson-id";
+const TS_ID_KEY = TRADESPERSON_ID_STORAGE_KEY;
 const FREE_LEAD_KEY = "tradescore_free_lead_used";
 const SUPPORT_EMAIL = "support@tradescore.uk";
 
@@ -141,10 +145,19 @@ export function LeadAcceptPayment({
     void refreshFreeLeadEligibility(tradeIdForCheck);
   }, [fetchSubscriptionSnapshot, matchedTradespersonId, refreshFreeLeadEligibility]);
 
-  function persistIdentity(name: string, email: string) {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(NAME_KEY, name);
-      window.localStorage.setItem(EMAIL_KEY, email);
+  function persistIdentity(
+    name: string,
+    email: string,
+    tradespersonId?: string,
+  ) {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(NAME_KEY, name);
+    window.localStorage.setItem(EMAIL_KEY, email);
+    const tid = tradespersonId?.trim();
+    if (tid) {
+      persistTradespersonIdFromUrl(tid);
     }
   }
 
@@ -168,7 +181,18 @@ export function LeadAcceptPayment({
       return;
     }
 
-    persistIdentity(tradesmanName.trim(), tradesmanEmail.trim());
+    const tidForPersist =
+      (typeof window !== "undefined"
+        ? (window.localStorage.getItem(TS_ID_KEY) ?? "").trim()
+        : "") ||
+      (typeof matchedTradespersonId === "string"
+        ? matchedTradespersonId.trim()
+        : "");
+    persistIdentity(
+      tradesmanName.trim(),
+      tradesmanEmail.trim(),
+      tidForPersist || undefined,
+    );
     try {
       await fetch(`/api/leads/${encodeURIComponent(leadId)}/mark-pending`, {
         method: "POST",
@@ -219,7 +243,7 @@ export function LeadAcceptPayment({
       if (reason === "free_first" && typeof window !== "undefined") {
         window.localStorage.setItem(FREE_LEAD_KEY, "1");
       }
-      persistIdentity(name, email);
+      persistIdentity(name, email, tid);
       onPaymentSucceeded();
       const qp =
         reason === "free_first"

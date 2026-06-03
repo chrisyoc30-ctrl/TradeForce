@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -19,8 +19,12 @@ import {
   tradesLeadLocationPreview,
 } from "@/components/leads/lead-helpers";
 import { cn } from "@/lib/utils";
+import {
+  persistTradespersonIdFromUrl,
+  TRADESPERSON_ID_STORAGE_KEY,
+} from "@/lib/tradesperson-storage";
 
-const TS_STORAGE = "tradescore-tradesperson-id";
+const TS_STORAGE = TRADESPERSON_ID_STORAGE_KEY;
 
 function toLeadGrade(grade: string | undefined): LeadGrade {
   const g = (grade ?? "C").toUpperCase();
@@ -37,15 +41,27 @@ function paymentClearedStatuses(lead: { paymentStatus?: string | null }): boolea
 
 export default function AcceptLeadPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const leadId = typeof params.leadId === "string" ? params.leadId : "";
+  const urlTrade = (searchParams.get("trade") ?? "").trim();
   const utils = trpc.useUtils();
   const [viewerTradespersonId, setViewerTradespersonId] = useState("");
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (urlTrade) {
+      persistTradespersonIdFromUrl(urlTrade);
+      setViewerTradespersonId(
+        (window.localStorage.getItem(TS_STORAGE) ?? urlTrade).trim(),
+      );
+      return;
+    }
     setViewerTradespersonId(
       (window.localStorage.getItem(TS_STORAGE) ?? "").trim(),
     );
-  }, []);
+  }, [urlTrade]);
 
   const getByIdInput = {
     id: leadId,
