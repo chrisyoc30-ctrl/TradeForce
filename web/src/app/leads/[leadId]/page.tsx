@@ -73,7 +73,14 @@ export default function LeadDetailPage() {
 
   const tokenValid = tokenValidation.data?.valid === true;
   const tokenMeta = tokenValidation.data?.valid ? tokenValidation.data : null;
+  const tokenAlreadyAccepted =
+    tokenValid && Boolean(tokenMeta?.alreadyAccepted);
   const waitingOnToken = hasUrlToken && tokenValidation.isLoading;
+  const tokenCheckComplete =
+    hasUrlToken && !tokenValidation.isLoading && tokenValidation.isFetched;
+  const tokenRejected =
+    tokenCheckComplete &&
+    (tokenValidation.isError || !tokenValidation.data?.valid);
 
   useEffect(() => {
     if (!tokenValidation.data?.valid) {
@@ -90,7 +97,10 @@ export default function LeadDetailPage() {
     void utils.leads.getById.invalidate();
   }, [tokenValidation.data, urlTrade, utils.leads.getById]);
 
-  const effectiveViewerId = tokenValid ? urlTrade : viewerTradespersonId.trim();
+  const tokenTradeId = tokenValid
+    ? (tokenMeta?.tradespersonId ?? urlTrade).trim()
+    : "";
+  const effectiveViewerId = tokenTradeId || viewerTradespersonId.trim();
 
   const getByIdInput = {
     id: leadId,
@@ -158,12 +168,19 @@ export default function LeadDetailPage() {
     );
   }
 
-  if (hasUrlToken && tokenValidation.data && !tokenValidation.data.valid) {
+  if (tokenRejected) {
+    const reason = tokenValidation.data?.reason;
+    const detail =
+      reason === "trade_mismatch"
+        ? "This link is for a different tradesperson than the one matched to this lead."
+        : reason === "invalid_token"
+          ? "This secure link is invalid or has expired."
+          : "This acceptance link could not be verified.";
     return (
       <div className="mx-auto max-w-lg space-y-4 px-4 py-16 text-center text-sm">
         <p className="text-destructive" role="alert">
-          This acceptance link is invalid or has expired. Open Available Jobs or
-          contact support@tradescore.uk if you need a fresh link.
+          {detail} Open Available Jobs or contact support@tradescore.uk if you
+          need help.
         </p>
         <Link href="/available-jobs" className={cn(buttonVariants({ variant: "secondary" }))}>
           Available jobs
@@ -233,6 +250,20 @@ export default function LeadDetailPage() {
             </div>
           </div>
         </div>
+
+        {tokenAlreadyAccepted || (paymentCleared && isMatchedTradeViewer) ? (
+          <div
+            className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-950 dark:text-emerald-100"
+            role="status"
+          >
+            <p className="font-semibold">Lead accepted</p>
+            <p className="mt-1 text-emerald-900/90 dark:text-emerald-100/90">
+              {tokenAlreadyAccepted
+                ? "You have already accepted this job. Customer contact details are unlocked below — call or email them soon."
+                : "This lead is secured. Full customer contact details are visible below."}
+            </p>
+          </div>
+        ) : null}
 
         {showMatchActions ? (
           <LeadMatchActions
@@ -407,15 +438,30 @@ export default function LeadDetailPage() {
             ) : (
               <div className="rounded-md border border-amber-500/35 bg-muted/35 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                 {isMatchedTradeViewer ? (
-                  <>
-                    Homeowner contact unlocks after you accept and pay the lead
-                    fee (or use your first free lead). You&apos;re seeing postcode
-                    area only:{" "}
-                    <strong className="text-foreground">
-                      {tradesLeadLocationPreview(lead)}
-                    </strong>
-                    .
-                  </>
+                  paymentCleared ? (
+                    <>
+                      This lead is already accepted. If contact details do not
+                      appear below, refresh the page or email{" "}
+                      <a
+                        href="mailto:support@tradescore.uk"
+                        className="font-medium text-foreground underline underline-offset-2"
+                      >
+                        support@tradescore.uk
+                      </a>{" "}
+                      with lead ID{" "}
+                      <span className="font-mono text-foreground">{leadId}</span>.
+                    </>
+                  ) : (
+                    <>
+                      Homeowner contact unlocks after you accept and pay the lead
+                      fee (or use your first free lead). You&apos;re seeing postcode
+                      area only:{" "}
+                      <strong className="text-foreground">
+                        {tradesLeadLocationPreview(lead)}
+                      </strong>
+                      .
+                    </>
+                  )
                 ) : effectiveViewerId && !isMatchedTradeViewer ? (
                   <>
                     This page does not reveal homeowner contact unless you&apos;re the
@@ -456,12 +502,6 @@ export default function LeadDetailPage() {
             leadId={leadId}
             matchedTradespersonId={matched}
           />
-        ) : null}
-
-        {isMatchedTradeViewer && paymentCleared ? (
-          <p className="text-sm text-emerald-600">
-            This lead is paid for and secured — full contact details are visible above.
-          </p>
         ) : null}
 
         <div className="flex flex-wrap gap-2">
