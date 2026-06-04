@@ -194,7 +194,10 @@ export default function LeadDetailPage() {
   }
 
   if (tokenRejected) {
-    const reason = tokenValidation.data?.reason;
+    const reason =
+      tokenValidation.data?.valid === false
+        ? tokenValidation.data.reason
+        : undefined;
     const detail =
       reason === "trade_mismatch"
         ? "This link is for a different tradesperson than the one matched to this lead."

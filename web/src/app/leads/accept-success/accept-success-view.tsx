@@ -132,7 +132,7 @@ export default function AcceptSuccessView() {
         : "/lead-scoring";
 
   const showConfirmationEmailLine =
-    Boolean(lead) && leadConfirmationEmailSent(lead);
+    lead != null && leadConfirmationEmailSent(lead);
   const unlocked = lead ? isTradeLeadContactUnlocked(lead) : false;
 
   if (!leadId) {
