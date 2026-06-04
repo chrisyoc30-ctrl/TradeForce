@@ -44,6 +44,7 @@ export default function AcceptLeadPage() {
   const searchParams = useSearchParams();
   const leadId = typeof params.leadId === "string" ? params.leadId : "";
   const urlTrade = (searchParams.get("trade") ?? "").trim();
+  const urlToken = (searchParams.get("token") ?? "").trim();
   const utils = trpc.useUtils();
   const [viewerTradespersonId, setViewerTradespersonId] = useState("");
 
@@ -244,6 +245,8 @@ export default function AcceptLeadPage() {
               leadId={leadId}
               exclusiveMatchStatus={lead.matchStatus}
               matchedTradespersonId={lead.matchedTradespersonId}
+              urlTrade={urlTrade || undefined}
+              accessToken={urlToken || undefined}
               onPaymentSucceeded={() => {
                 void utils.leads.getById.invalidate();
               }}

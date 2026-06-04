@@ -32,3 +32,27 @@ export function persistTradespersonIdFromUrl(tradeId: string): void {
   }
   window.localStorage.setItem(TRADESPERSON_ID_STORAGE_KEY, normalized);
 }
+
+/** HMAC-validated trade id → URL ?trade= → localStorage (P1-7). */
+export function resolveViewerTradespersonId(opts: {
+  tokenValid: boolean;
+  tokenTradespersonId?: string | null;
+  urlTrade: string;
+  storedTradeId: string;
+}): string {
+  if (opts.tokenValid) {
+    const fromToken = (opts.tokenTradespersonId ?? "").trim();
+    if (fromToken && isValidTradespersonIdFormat(fromToken)) {
+      return fromToken;
+    }
+  }
+  const fromUrl = opts.urlTrade.trim();
+  if (fromUrl && isValidTradespersonIdFormat(fromUrl)) {
+    return fromUrl;
+  }
+  const fromStorage = opts.storedTradeId.trim();
+  if (fromStorage && isValidTradespersonIdFormat(fromStorage)) {
+    return fromStorage;
+  }
+  return "";
+}

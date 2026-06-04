@@ -54,6 +54,8 @@ export interface Lead {
   contactPostcodeArea?: string | null;
   /** Tokenized detail URL for exclusive matches (from Flask tradesperson leads feed). */
   acceptUrl?: string | null;
+  /** Set after post-accept confirmation email sends (P1-7). */
+  trade_payment_confirmation_sent?: boolean;
 }
 
 export interface CreateLeadResult {

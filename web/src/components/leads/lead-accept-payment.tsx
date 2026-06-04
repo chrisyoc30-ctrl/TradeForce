@@ -38,17 +38,43 @@ type Props = {
   /** When reserved, Flask exclusive accept runs before opening checkout. */
   exclusiveMatchStatus?: string | null;
   matchedTradespersonId?: string | null;
+  /** From match email / accept URL — used for success-page deep link. */
+  urlTrade?: string;
+  accessToken?: string;
 };
 
 type SubscriptionSnapshot =
   | { loading: true }
   | { loading: false; tier: string; status: string };
 
+function buildAcceptSuccessUrl(
+  leadId: string,
+  variant: "free_first" | "unlimited_tier",
+  tradeId: string,
+  accessToken?: string,
+): string {
+  const qp = new URLSearchParams(
+    variant === "free_first" ? { free: "true" } : { unlimited: "true" },
+  );
+  qp.set("leadId", leadId);
+  const tid = tradeId.trim();
+  if (tid) {
+    qp.set("trade", tid);
+  }
+  const tok = accessToken?.trim();
+  if (tok) {
+    qp.set("token", tok);
+  }
+  return `/leads/accept-success?${qp.toString()}`;
+}
+
 export function LeadAcceptPayment({
   leadId,
   onPaymentSucceeded,
   exclusiveMatchStatus,
   matchedTradespersonId,
+  urlTrade,
+  accessToken,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [tradesmanName, setTradesmanName] = useState("");
@@ -245,12 +271,14 @@ export function LeadAcceptPayment({
       }
       persistIdentity(name, email, tid);
       onPaymentSucceeded();
-      const qp =
-        reason === "free_first"
-          ? "free=true"
-          : "unlimited=true";
+      const tradeForLink = tid || urlTrade?.trim() || "";
       window.location.assign(
-        `/leads/accept-success?${qp}&leadId=${encodeURIComponent(leadId)}`,
+        buildAcceptSuccessUrl(
+          leadId,
+          reason === "free_first" ? "free_first" : "unlimited_tier",
+          tradeForLink,
+          accessToken,
+        ),
       );
     } catch (e) {
       console.error(e);

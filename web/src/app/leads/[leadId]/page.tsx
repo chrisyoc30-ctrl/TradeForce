@@ -27,8 +27,8 @@ import { cn } from "@/lib/utils";
 import { readHomeownerSessionPhone } from "@/lib/auth-nav";
 import { fetchValidateTradesId } from "@/lib/validate-tradesperson-id";
 import {
-  isValidTradespersonIdFormat,
   persistTradespersonIdFromUrl,
+  resolveViewerTradespersonId,
   TRADESPERSON_ID_STORAGE_KEY,
 } from "@/lib/tradesperson-storage";
 
@@ -47,28 +47,15 @@ function leadIsAcceptedForTradeView(lead: {
   return status === "accepted" || paymentClearedStatuses(lead);
 }
 
-/** HMAC-validated trade id → URL ?trade= → localStorage (P1-7 Phase 4). */
-function resolveViewerTradespersonId(opts: {
-  tokenValid: boolean;
-  tokenTradespersonId?: string | null;
-  urlTrade: string;
-  storedTradeId: string;
-}): string {
-  if (opts.tokenValid) {
-    const fromToken = (opts.tokenTradespersonId ?? "").trim();
-    if (fromToken && isValidTradespersonIdFormat(fromToken)) {
-      return fromToken;
-    }
+function securedLeadFooterCopy(paymentStatus: string | undefined | null): string {
+  const ps = (paymentStatus ?? "").toLowerCase();
+  if (ps === "free_first") {
+    return "This lead is yours (free first lead) — full contact details are visible above.";
   }
-  const fromUrl = opts.urlTrade.trim();
-  if (fromUrl && isValidTradespersonIdFormat(fromUrl)) {
-    return fromUrl;
+  if (ps === "succeeded" || ps === "paid") {
+    return "This lead is paid for and secured — full contact details are visible above.";
   }
-  const fromStorage = opts.storedTradeId.trim();
-  if (fromStorage && isValidTradespersonIdFormat(fromStorage)) {
-    return fromStorage;
-  }
-  return "";
+  return "This lead is secured — full contact details are visible above.";
 }
 
 export default function LeadDetailPage() {
@@ -598,6 +585,12 @@ export default function LeadDetailPage() {
             leadId={leadId}
             matchedTradespersonId={matched}
           />
+        ) : null}
+
+        {isMatchedTradeViewer && paymentCleared ? (
+          <p className="text-sm text-emerald-600">
+            {securedLeadFooterCopy(lead.paymentStatus)}
+          </p>
         ) : null}
 
         <div className="flex flex-wrap gap-2">
