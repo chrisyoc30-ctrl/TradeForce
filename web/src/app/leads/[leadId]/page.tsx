@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { readHomeownerSessionPhone } from "@/lib/auth-nav";
 import { fetchValidateTradesId } from "@/lib/validate-tradesperson-id";
 import {
+  isValidTradespersonIdFormat,
   persistTradespersonIdFromUrl,
   TRADESPERSON_ID_STORAGE_KEY,
 } from "@/lib/tradesperson-storage";
@@ -36,6 +37,38 @@ const TS_STORAGE = TRADESPERSON_ID_STORAGE_KEY;
 function paymentClearedStatuses(lead: { paymentStatus?: string | null }): boolean {
   const ps = (lead.paymentStatus ?? "").toLowerCase();
   return ["succeeded", "paid", "free_first", "unlimited_tier"].includes(ps);
+}
+
+function leadIsAcceptedForTradeView(lead: {
+  status?: string | null;
+  paymentStatus?: string | null;
+}): boolean {
+  const status = String(lead.status ?? "").toLowerCase();
+  return status === "accepted" || paymentClearedStatuses(lead);
+}
+
+/** HMAC-validated trade id → URL ?trade= → localStorage (P1-7 Phase 4). */
+function resolveViewerTradespersonId(opts: {
+  tokenValid: boolean;
+  tokenTradespersonId?: string | null;
+  urlTrade: string;
+  storedTradeId: string;
+}): string {
+  if (opts.tokenValid) {
+    const fromToken = (opts.tokenTradespersonId ?? "").trim();
+    if (fromToken && isValidTradespersonIdFormat(fromToken)) {
+      return fromToken;
+    }
+  }
+  const fromUrl = opts.urlTrade.trim();
+  if (fromUrl && isValidTradespersonIdFormat(fromUrl)) {
+    return fromUrl;
+  }
+  const fromStorage = opts.storedTradeId.trim();
+  if (fromStorage && isValidTradespersonIdFormat(fromStorage)) {
+    return fromStorage;
+  }
+  return "";
 }
 
 export default function LeadDetailPage() {
@@ -58,7 +91,10 @@ export default function LeadDetailPage() {
   useEffect(() => {
     setViewerTradespersonId((window.localStorage.getItem(TS_STORAGE) ?? "").trim());
     setHomeownerPhone(readHomeownerSessionPhone().trim());
-  }, []);
+    if (urlTrade) {
+      persistTradespersonIdFromUrl(urlTrade);
+    }
+  }, [urlTrade]);
 
   const tokenValidation = trpc.leads.validateAccessToken.useQuery(
     {
@@ -97,10 +133,12 @@ export default function LeadDetailPage() {
     void utils.leads.getById.invalidate();
   }, [tokenValidation.data, urlTrade, utils.leads.getById]);
 
-  const tokenTradeId = tokenValid
-    ? (tokenMeta?.tradespersonId ?? urlTrade).trim()
-    : "";
-  const effectiveViewerId = tokenTradeId || viewerTradespersonId.trim();
+  const effectiveViewerId = resolveViewerTradespersonId({
+    tokenValid,
+    tokenTradespersonId: tokenMeta?.tradespersonId,
+    urlTrade,
+    storedTradeId: viewerTradespersonId,
+  });
 
   const getByIdInput = {
     id: leadId,
@@ -204,6 +242,39 @@ export default function LeadDetailPage() {
   const needsAcceptFlow = hasExclusiveMatch && !paymentCleared;
   const showMatchActions = needsAcceptFlow && isMatchedTradeViewer;
   const showTsIdGate = needsAcceptFlow && !isMatchedTradeViewer;
+  const leadAcceptedForTrade = leadIsAcceptedForTradeView(lead);
+  const showPostAcceptIdGate =
+    leadAcceptedForTrade &&
+    hasExclusiveMatch &&
+    effectiveViewerId.length === 0;
+
+  const verifyTradespersonId = async (tidRaw: string) => {
+    setIdConfigError(null);
+    setInvalidTradeId(false);
+    setIdSubmitting(true);
+    try {
+      const v = await fetchValidateTradesId(tidRaw);
+      if (v.kind === "config") {
+        setIdConfigError("App is not configured with NEXT_PUBLIC_API_URL.");
+        return;
+      }
+      const tid = tidRaw.trim();
+      if (v.kind === "ok") {
+        if (tid !== matched) {
+          setInvalidTradeId(true);
+          return;
+        }
+        persistTradespersonIdFromUrl(tid);
+        setViewerTradespersonId(tid);
+        void utils.leads.getById.invalidate();
+        return;
+      }
+      setInvalidTradeId(true);
+    } finally {
+      setIdSubmitting(false);
+    }
+  };
+
   const canUseFreeForActions =
     tokenValid && tokenMeta
       ? Boolean(tokenMeta.canUseFree)
@@ -319,36 +390,7 @@ export default function LeadDetailPage() {
                 <Button
                   type="button"
                   disabled={idSubmitting || !idInput.trim()}
-                  onClick={async () => {
-                    setIdConfigError(null);
-                    setInvalidTradeId(false);
-                    setIdSubmitting(true);
-                    try {
-                      const v = await fetchValidateTradesId(idInput);
-                      if (v.kind === "config") {
-                        setIdConfigError(
-                          "App is not configured with NEXT_PUBLIC_API_URL.",
-                        );
-                        return;
-                      }
-                      const tid = idInput.trim();
-                      if (v.kind === "ok") {
-                        if (tid !== matched) {
-                          setInvalidTradeId(true);
-                          return;
-                        }
-                        if (typeof window !== "undefined") {
-                          window.localStorage.setItem(TS_STORAGE, tid);
-                        }
-                        setViewerTradespersonId(tid);
-                        void utils.leads.getById.invalidate();
-                        return;
-                      }
-                      setInvalidTradeId(true);
-                    } finally {
-                      setIdSubmitting(false);
-                    }
-                  }}
+                  onClick={() => void verifyTradespersonId(idInput)}
                 >
                   {idSubmitting ? (
                     <>
@@ -366,6 +408,60 @@ export default function LeadDetailPage() {
                   Open accept page
                 </Link>
               </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {showPostAcceptIdGate ? (
+          <Card className="border-emerald-500/35">
+            <CardContent className="space-y-3 p-4">
+              <h2 className="text-lg font-semibold">Confirm your TradeScore ID</h2>
+              <p className="text-sm text-muted-foreground">
+                This lead was accepted by tradesperson{" "}
+                <span className="font-mono text-foreground">{matched}</span>. Enter
+                your ID from signup or your confirmation email to unlock customer
+                contact details on this device.
+              </p>
+              <div className="grid gap-2 max-w-md">
+                <Label htmlFor="lead-trades-id-post-accept">Tradesperson ID</Label>
+                <Input
+                  id="lead-trades-id-post-accept"
+                  value={idInput}
+                  onChange={(e) => {
+                    setIdInput(e.target.value.toUpperCase());
+                    setIdConfigError(null);
+                    setInvalidTradeId(false);
+                  }}
+                  placeholder="e.g. TS-JE7SEL"
+                  autoComplete="off"
+                  disabled={idSubmitting}
+                />
+              </div>
+              {idConfigError ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {idConfigError}
+                </p>
+              ) : null}
+              {invalidTradeId ? (
+                <p className="text-sm text-destructive" role="alert">
+                  That ID does not match the tradesperson who accepted this lead (
+                  {matched}). Check your confirmation email.
+                </p>
+              ) : null}
+              <Button
+                type="button"
+                disabled={idSubmitting || !idInput.trim()}
+                onClick={() => void verifyTradespersonId(idInput)}
+              >
+                {idSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Checking…
+                  </>
+                ) : (
+                  "Unlock contact details"
+                )}
+              </Button>
             </CardContent>
           </Card>
         ) : null}
