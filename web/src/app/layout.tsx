@@ -4,6 +4,8 @@ import "./globals.css";
 
 import { AIChatBox } from "@/components/AIChatBox";
 import { CookieGtagInit } from "@/components/cookie-gtag-init";
+import { MetaPixel } from "@/components/MetaPixel";
+import { PixelPageView } from "@/components/PixelPageView";
 import { HomeHeader } from "@/components/homepage/home-header";
 import { GlobalTrustBanner } from "@/components/trust/global-trust-banner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,6 +35,11 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
   },
+  // Meta domain verification (Business Settings → Brand Safety → Domains → Meta-tag method).
+  // TODO(Christopher): replace DOMAIN_TAG_PLACEHOLDER with the content value Meta gives you.
+  other: {
+    "facebook-domain-verification": "DOMAIN_TAG_PLACEHOLDER",
+  },
 };
 
 export default function RootLayout({
@@ -52,6 +59,8 @@ export default function RootLayout({
             {children}
             <AIChatBox />
             <CookieGtagInit />
+            <MetaPixel />
+            <PixelPageView />
           </TooltipProvider>
         </TRPCProvider>
       </body>
