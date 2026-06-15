@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, Check, Copy, Loader2 } from "lucide-react";
+import { Check, Copy, Loader2 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ProminentNativeSelect } from "@/components/ui/prominent-native-select";
@@ -187,26 +187,36 @@ export function TradesmanSignupForm() {
           </Button>
         </div>
         {chVerification?.verified ? (
-          <div className="mt-6 flex items-center gap-3 rounded-lg border-2 border-green-500 bg-green-50 p-4 dark:border-green-500 dark:bg-green-950/50">
-            <BadgeCheck className="h-6 w-6 shrink-0 text-green-600 dark:text-green-400" />
-            <div>
-              <p className="font-semibold text-green-900 dark:text-green-100">
-                Verified Business
-              </p>
-              <p className="text-sm text-green-700 dark:text-green-300/90">
-                Matched to{" "}
-                {(chVerification.companyName ?? "").trim() || "your business"}{" "}
-                on Companies House
-              </p>
-            </div>
+          <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-600/60 dark:bg-amber-950/40">
+            <p className="font-semibold text-amber-900 dark:text-amber-100">
+              Companies House name match found — pending platform review
+            </p>
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+              Matched to{" "}
+              {(chVerification.companyName ?? "").trim() || "your business"} on
+              the UK Companies House register.
+            </p>
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+              Platform verification requires completing{" "}
+              <Link className="underline" href="/verify">
+                tradescore.uk/verify
+              </Link>{" "}
+              — our team reviews your documents before customer-facing badges are
+              granted.
+            </p>
           </div>
         ) : null}
         {chVerification && chVerification.verified === false ? (
           <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-600/60 dark:bg-amber-950/40">
-            <p className="text-sm text-amber-900 dark:text-amber-100/90">
-              We couldn&apos;t automatically verify your business name on Companies
-              House. This won&apos;t affect your account — you can still receive leads.
-              Verified badge can be added later by support@tradescore.uk if needed.
+            <p className="font-semibold text-amber-900 dark:text-amber-100">
+              No Companies House name match found at signup
+            </p>
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+              Account created — complete{" "}
+              <Link className="underline" href="/verify">
+                tradescore.uk/verify
+              </Link>{" "}
+              to become eligible for lead matching.
             </p>
           </div>
         ) : null}
