@@ -35,10 +35,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
   },
-  // Meta domain verification (Business Settings → Brand Safety → Domains → Meta-tag method).
-  // TODO(Christopher): replace DOMAIN_TAG_PLACEHOLDER with the content value Meta gives you.
+  // Meta domain verification (Business Settings → Domains → Meta-tag method).
   other: {
-    "facebook-domain-verification": "DOMAIN_TAG_PLACEHOLDER",
+    "facebook-domain-verification": "ydgebhqsifvkyfq9s005se9dlvidep",
   },
 };
 
