@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, Check, Copy, Loader2 } from "lucide-react";
+import { Check, Copy, Loader2 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ProminentNativeSelect } from "@/components/ui/prominent-native-select";
@@ -42,6 +42,13 @@ const emptyErrors = (): Record<FieldErrorKey, string> => ({
 type SignupSuccessVerification = {
   verified: boolean;
   companyName: string | null;
+  lookupMethod?: string | null;
+  companyNumber?: string | null;
+  enteredNumber?: string | null;
+  numberLookupFailed?: boolean;
+  numberNameMismatch?: boolean;
+  nameSearchCompanyName?: string | null;
+  nameSearchCompanyNumber?: string | null;
 };
 
 export function TradesmanSignupForm() {
@@ -186,27 +193,80 @@ export function TradesmanSignupForm() {
             )}
           </Button>
         </div>
-        {chVerification?.verified ? (
-          <div className="mt-6 flex items-center gap-3 rounded-lg border-2 border-green-500 bg-green-50 p-4 dark:border-green-500 dark:bg-green-950/50">
-            <BadgeCheck className="h-6 w-6 shrink-0 text-green-600 dark:text-green-400" />
-            <div>
-              <p className="font-semibold text-green-900 dark:text-green-100">
-                Verified Business
+        {chVerification?.numberLookupFailed ? (
+          <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-600/60 dark:bg-amber-950/40">
+            <p className="font-semibold text-amber-900 dark:text-amber-100">
+              Companies House number not found at signup
+            </p>
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+              The number you entered
+              {chVerification.enteredNumber
+                ? ` (${chVerification.enteredNumber})`
+                : ""}{" "}
+              could not be found on the UK Companies House register. Complete{" "}
+              <Link className="underline" href="/verify">
+                tradescore.uk/verify
+              </Link>{" "}
+              so our team can confirm your business details.
+            </p>
+            {chVerification.numberNameMismatch ? (
+              <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+                A different company (
+                {chVerification.nameSearchCompanyName ?? "unknown"},{" "}
+                {chVerification.nameSearchCompanyNumber ?? "—"}) matched your
+                business name — we did not apply that match.
               </p>
-              <p className="text-sm text-green-700 dark:text-green-300/90">
-                Matched to{" "}
-                {(chVerification.companyName ?? "").trim() || "your business"}{" "}
-                on Companies House
-              </p>
-            </div>
+            ) : null}
           </div>
         ) : null}
-        {chVerification && chVerification.verified === false ? (
+        {chVerification?.verified && !chVerification.numberLookupFailed ? (
           <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-600/60 dark:bg-amber-950/40">
-            <p className="text-sm text-amber-900 dark:text-amber-100/90">
-              We couldn&apos;t automatically verify your business name on Companies
-              House. This won&apos;t affect your account — you can still receive leads.
-              Verified badge can be added later by support@tradescore.uk if needed.
+            <p className="font-semibold text-amber-900 dark:text-amber-100">
+              {chVerification.lookupMethod === "number"
+                ? "Companies House number match found — pending platform review"
+                : "Companies House name match found — pending platform review"}
+            </p>
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+              Matched to{" "}
+              {(chVerification.companyName ?? "").trim() || "your business"}
+              {chVerification.lookupMethod === "number" &&
+              chVerification.companyNumber
+                ? ` (${chVerification.companyNumber})`
+                : ""}{" "}
+              on the UK Companies House register.
+            </p>
+            {chVerification.numberNameMismatch ? (
+              <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+                Note: your business name would also match{" "}
+                {chVerification.nameSearchCompanyName ?? "another company"} (
+                {chVerification.nameSearchCompanyNumber ?? "—"}). We used your
+                entered company number — our team will confirm the correct
+                entity at review.
+              </p>
+            ) : null}
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+              Platform verification requires completing{" "}
+              <Link className="underline" href="/verify">
+                tradescore.uk/verify
+              </Link>{" "}
+              — our team reviews your documents before customer-facing badges are
+              granted.
+            </p>
+          </div>
+        ) : null}
+        {chVerification &&
+        chVerification.verified === false &&
+        !chVerification.numberLookupFailed ? (
+          <div className="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-600/60 dark:bg-amber-950/40">
+            <p className="font-semibold text-amber-900 dark:text-amber-100">
+              No Companies House name match found at signup
+            </p>
+            <p className="mt-2 text-sm text-amber-800 dark:text-amber-200/90">
+              Account created — complete{" "}
+              <Link className="underline" href="/verify">
+                tradescore.uk/verify
+              </Link>{" "}
+              to become eligible for lead matching.
             </p>
           </div>
         ) : null}
@@ -277,7 +337,12 @@ export function TradesmanSignupForm() {
             ch_verified?: boolean;
             ch_company_name?: string | null;
             ch_company_number?: string | null;
-            ch_company_status?: string | null;
+            ch_lookup_method?: string | null;
+            ch_entered_number?: string | null;
+            ch_number_lookup_failed?: boolean;
+            ch_number_name_mismatch?: boolean;
+            ch_name_search_company_name?: string | null;
+            ch_name_search_company_number?: string | null;
           };
           if (res.status === 409) {
             setFormErr(
@@ -291,16 +356,37 @@ export function TradesmanSignupForm() {
           }
           if (j.success && j.tradesperson_id) {
             setSuccessId(j.tradesperson_id);
-            if (j.ch_verified === true) {
+            if (j.ch_number_lookup_failed) {
+              setChVerification({
+                verified: false,
+                companyName: null,
+                lookupMethod: j.ch_lookup_method ?? "number_failed",
+                enteredNumber: j.ch_entered_number ?? null,
+                numberLookupFailed: true,
+                numberNameMismatch: Boolean(j.ch_number_name_mismatch),
+                nameSearchCompanyName: j.ch_name_search_company_name ?? null,
+                nameSearchCompanyNumber: j.ch_name_search_company_number ?? null,
+              });
+            } else if (j.ch_verified === true) {
               setChVerification({
                 verified: true,
                 companyName:
                   typeof j.ch_company_name === "string"
                     ? j.ch_company_name
                     : null,
+                lookupMethod: j.ch_lookup_method ?? "name",
+                companyNumber: j.ch_company_number ?? null,
+                enteredNumber: j.ch_entered_number ?? null,
+                numberNameMismatch: Boolean(j.ch_number_name_mismatch),
+                nameSearchCompanyName: j.ch_name_search_company_name ?? null,
+                nameSearchCompanyNumber: j.ch_name_search_company_number ?? null,
               });
             } else if (j.ch_verified === false) {
-              setChVerification({ verified: false, companyName: null });
+              setChVerification({
+                verified: false,
+                companyName: null,
+                lookupMethod: j.ch_lookup_method ?? null,
+              });
             } else {
               setChVerification(null);
             }
