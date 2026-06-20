@@ -397,7 +397,7 @@ export function LeadCapture() {
                 <span className="sr-only">Submitting</span>
               </>
             ) : null}
-            Submit your project
+            Get matched — free
           </Button>
           <p className="mt-3 text-center text-xs text-muted-foreground">
             By submitting you confirm your details are accurate. We&apos;ll only use them
