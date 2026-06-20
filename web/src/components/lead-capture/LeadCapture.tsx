@@ -383,7 +383,7 @@ export function LeadCapture() {
           </p>
         </div>
 
-        <div className="sticky bottom-[max(env(safe-area-inset-bottom),12px)] z-40 mt-auto border-t border-border/70 bg-background/95 py-4 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.08)] backdrop-blur-md dark:bg-background/90 dark:shadow-black/40 supports-[backdrop-filter]:backdrop-blur-md">
+        <div className="sticky bottom-[calc(var(--cookie-banner-h,0px)_+_max(env(safe-area-inset-bottom),12px))] z-40 mt-auto border-t border-border/70 bg-background/95 py-4 shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.08)] backdrop-blur-md transition-[bottom] duration-200 ease-out dark:bg-background/90 dark:shadow-black/40 supports-[backdrop-filter]:backdrop-blur-md">
           <Button
             type="submit"
             size="lg"

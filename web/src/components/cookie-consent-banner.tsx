@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -59,8 +59,13 @@ export function initGtagIfConsented() {
   gtag("config", id, { anonymize_ip: true });
 }
 
+/** Height clearance var name read by sticky-bottom UI (e.g. lead-capture submit bar). */
+const BANNER_HEIGHT_VAR = "--cookie-banner-h";
+const BANNER_HEIGHT_FALLBACK_PX = 140; // wrapped mobile banner ≈ this; used when ResizeObserver is unavailable
+
 export function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
 
   const sync = useCallback(() => {
     setVisible(readStored() === null);
@@ -70,13 +75,46 @@ export function CookieConsentBanner() {
     sync();
     const on = () => sync();
     window.addEventListener("storage", on);
-    return () => window.removeEventListener("storage", on);
+    window.addEventListener("cookie-consent-change", on);
+    return () => {
+      window.removeEventListener("storage", on);
+      window.removeEventListener("cookie-consent-change", on);
+    };
   }, [sync]);
+
+  // Publish the banner's live height to a CSS variable so sticky-bottom UI can
+  // clear it (keeps both the submit CTA and these consent buttons tappable —
+  // PECR-safe). Set to 0px when the banner is gone rather than removing it, so
+  // dependent calc() resets cleanly.
+  useEffect(() => {
+    const root = document.documentElement;
+    const setPx = (px: number) =>
+      root.style.setProperty(BANNER_HEIGHT_VAR, `${px}px`);
+
+    if (!visible) {
+      setPx(0);
+      return;
+    }
+    const el = bannerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") {
+      setPx(BANNER_HEIGHT_FALLBACK_PX);
+      return;
+    }
+    const measure = () => setPx(el.getBoundingClientRect().height);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      setPx(0);
+    };
+  }, [visible]);
 
   if (!visible) return null;
 
   return (
     <div
+      ref={bannerRef}
       role="dialog"
       aria-label="Cookie consent"
       className="fixed bottom-0 left-0 right-0 z-[100] border-t border-border bg-card/95 p-4 shadow-lg backdrop-blur"
