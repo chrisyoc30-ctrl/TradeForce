@@ -12,6 +12,7 @@ import {
   SubmissionSuccess,
   type SubmissionSuccessData,
 } from "@/components/lead-capture/submission-success";
+import { TrustStrip } from "@/components/lead-capture/TrustStrip";
 import { trpc } from "@/trpc/react";
 import { persistHomeownerSessionPhone } from "@/lib/auth-nav";
 import { trackLeadSubmitted } from "@/lib/analytics";
@@ -96,6 +97,8 @@ export function LeadCapture() {
           homeowners. We score every request so the right pros see it first.
         </p>
       </header>
+
+      <TrustStrip />
 
       <div className="mb-8 shrink-0 rounded-xl border border-sky-500/35 bg-sky-500/10 p-5 dark:bg-sky-500/10">
         <div className="flex gap-3">
